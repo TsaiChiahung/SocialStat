@@ -1,0 +1,9 @@
+ID	Name	Department	Score Gender
+10322011	Ariel	Aerospace	78  F
+10325023	Becky	Physics	86  F
+10430101	Carl	Journalism	69  M
+10401032	Dimitri	English	83  M
+10307120	Enrique	Chemistry	80  M
+10207005	Fernando	Chemistry	66  M
+10305019	George	Mechanics	75  F
+

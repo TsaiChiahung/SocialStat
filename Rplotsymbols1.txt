@@ -1,0 +1,1 @@
+color	line	pointblue	solid	circlebrown	dashed	plusbisque	dotted	starcyan	dotdash	crosschocolate	longdash	solid circlegray		squaregoldenrod		triangle point up
