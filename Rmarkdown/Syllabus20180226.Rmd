@@ -1,0 +1,109 @@
+---
+params:
+title: "社會科學統計方法授課大綱（106學年第2學期）"
+author: "蔡佳泓"
+date: '`r format(Sys.time(), "%B %d, %Y")`'
+output: html_document
+       
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "html")
+```
+
+## 前言
+由於人類越來越重視數據做為決策的依據，因此資料科學最近變得非常熱門，但是早在資料科學出現之前，統計學已經幫助我們描述資料以及找出變數之間的關係。不過，資料科學的用途更廣，而學好統計學則能避免被龐大的資料所困惑。不論是學資料科學或是統計學，需要具備一些技術的訓練，才能透視資料後面的故事。    
+`R`是免費的統計軟體，近年來廣被政治、經濟、醫學、管理等領域使用，有豐富的網路資源，不僅可用於各種統計模型，而且資料容易轉化為圖形，也就是視覺化非常容易，更可延伸至大數據分析。例如針對NBA各個位置的球員，投籃的次數以及得到的分數之間的關係，用`ggplot2`畫成一個散佈圖：
+
+```{r echo=FALSE}
+require(ggplot2)
+require(SportsAnalytics)
+NBA1516<-fetch_NBAPlayerStatistics("15-16") 
+m<-qplot(FieldGoalsAttempted, TotalPoints, data = NBA1516,color=Position)
+m<-m+labs(caption='Source: http://yijutseng.github.io/DataScienceRBook/vis.html#ggplot2')
+m<-m+theme(plot.caption=element_text(size=10, hjust=0.5, vjust=1, face="italic", color="black"))
+m
+```
+
+本課程目的是用`R`實作統計，讓修課者同時學習統計以及操作`R`，未來能夠進一步延伸到其他的領域。  
+本課程將邀請謝吉隆老師教授如何在網路上取得資料，包括下載政府公開資料、電子報資料、Facebook資料等等，幫助同學收集到想要的資料。  
+`R`與統計模型的網路資源非常多，授課老師可能只了解其中之一，因此上課內容不見得是唯一解決問題的方式，歡迎修課者隨時提出更佳的方法。  
+本課程花費比過去統計課更多時間在於操作軟體，希望能讓修課者做中學，部分內容偏重資料處理而非統計原理，有志學好統計者可請教本所老師，或者至其他系所聽課。  
+
+## 課程目標  
+不論是統計或者資料分析，背後都需要有嚴謹的研究設計，本課程希望達到下列目標，但是也會時時提醒修課者培養看問題以及回答問題的敏銳度：  
+- 瞭解如何用`R`描述資料  
+- 瞭解如何用`R`整理資料    
+- 暸解如何用`R`從網路下載資料  
+- 暸解如何用`R`進行相關分析  
+- 瞭解如何用`R`進行線性迴歸模型  
+- 瞭解如何用`R`進行非線性迴歸模型  
+
+
+## 上課方式  
+本課程主要由教師於課堂上講授並且現場操作示範，請修課者盡量自行準備筆電上課，課後可以到電腦教室複習。
+
+## 評分方式
+
+1. 作業 70%
+2. 期末報告 30% 
+
+每次上課後會有作業，請在下次上課之前繳交`R`的檔案給助教以驗證執行。  
+期末報告的要求是展示對於資料以及統計的學習成果，每一位修課者選擇一筆現有資料，或者自行建立資料，然後以`R`描述資料型態，並且說明變數之間可能的關係，最後以線性或者非線性迴歸模型檢證假設。
+
+## 課程進度
+```{r schedule1, echo=FALSE}
+schedule<-read.table('schedule2018.txt', sep=';', header=T)
+```
+
+```{r schedule2, echo=FALSE}
+  kable(schedule) %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+## 課程資訊
+
+### 上課時間
+2/27-6/26，星期二，9:10-12:00
+
+### 上課地點
+270810（綜合院館北棟8樓俄羅斯所圖書室）
+
+### 討論時間
+原則上訂在星期三中午十二點到一點，研究室位於綜合院館北棟5樓。如果更動時間將通知，需要預約其他時間請email tsaich AT nccu.edu.tw。  
+
+### 助教
+劉明浩（東亞所博士生）
+
+## 參考書目
+1. 蔡佳泓，2014，*基礎統計分析：R 程式在社會科學之應用*，雙葉書廊。
+2. Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani, 2013. *An Introduction to Statistical Learning with Applications in R* (http://www-bcf.usc.edu/~gareth/ISL/ISLR%20First%20Printing.pdf)
+3. John Verzani, 2001. *Using R for Introductory Statistics*. (https://cran.r-project.org/doc/contrib/Verzani-SimpleR.pdf)
+
+## 網路資源
+台灣資料愛好者年會在2014年提供的ETL（Extract-Transform-Load）講義，詳細說明資料萃取、轉置以便分析的過程。透過執行下列程式碼，可閱讀ETL之投影片。請先執行下載套件的程式碼：
+```{r ETL1, eval=FALSE}
+deps <- available.packages("http://taiwanrusergroup.github.io/R-2014/src/contrib")[1,"Imports"]
+pkgs <- strsplit(gsub("\\s", "", deps), ",")[[1]]
+for(i in seq_along(pkgs)) {
+  # You can change your favorite repository
+  if (require(pkgs[i], character.only = TRUE)) next
+  install.packages(pkgs[i], repo = "http://cran.csie.ntu.edu.tw")
+}
+install.packages('DSC2014Tutorial', repo = 'http://taiwanrusergroup.github.io/R-2014', type = 'source')
+```
+然後依序執行下列程式碼，結果會出現在瀏覽器的網頁：
+```{r ETL2, eval=FALSE}
+library(DSC2014Tutorial)
+slides("Basic")
+slides("ETL1")
+slides("ETL2")
+slides("DataAnalysis")
+slides("Visualization1")
+slides("Visualization2")
+slides("Visualization3")
+```
+長庚大學資訊管理系的曾意儒教授所撰寫的[資料科學與R語言](http://yijutseng.github.io/DataScienceRBook/index.html)，結構分明，值得參考。
+同時鼓勵參考Hastie等人之前寫的有關統計與機器學習的書：Trevor Hastie, Robert Tibshirani, and Jerome Friedman, 2008. *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (https://web.stanford.edu/~hastie/Papers/ESLII.pdf)
