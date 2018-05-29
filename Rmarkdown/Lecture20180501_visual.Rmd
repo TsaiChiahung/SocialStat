@@ -1,0 +1,859 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>資料視覺化(v3.0)</h1>
+author: "蔡佳泓"
+job: <h1><u>東亞所<u></h1>
+date: '5/15/2018'
+output: 
+  html_document: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    fig_caption: true
+    #pandoc_args: ["-F","pandoc-crossref"]
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  
+---
+<style>
+
+div {
+    background-color: #FFECC9;
+         line-height: 1.5;
+  }
+
+div >  p {
+    font-size: 22px;
+    text-indent: 24px;
+    font-style: BiauKai;
+    color:#171717; padding:10px;
+    font-family: Times, "新細明體", sans-serif;
+  }
+p1 {
+    font-size: 22px;
+    color: #171717;
+    font-family:  "BiauKai", sans-serif; cursive;
+  }
+p2 {
+    font-size: 20px;
+    color: blue;
+    font-family: "儷黑 Pro";
+  }
+p3 {
+   font-family: "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "BiauKai", "微軟正黑體", "Microsoft JhengHei";
+}
+</style>
+
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(dplyr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+options(knitr.table.format = "html")
+```
+
+# 課程目標
+本週上課將介紹`R`的`ggplot2`的套件中的指令，把資料視覺化，雖然之前我們已經看過很多例子，但是仍然有必要好好介紹，包括直方圖、折線圖、散佈圖等等。例如：
+
+```{r echo=TRUE}
+library(ggplot2)
+students<-read.table('studentsfull.txt', sep='', header=TRUE)
+p <- ggplot(students, aes(x=Department, y=Score)) +
+  geom_point() +
+  theme_classic() +
+  stat_summary(fun.y='mean', color='red')
+p
+
+```
+
+
+---
+
+# 基本指令 
+<p>
+有人說，「一張照片勝過千言萬語」。以圖形表現變數之間的關係，在社會科學界過去經常被學者採用。  
+`R`內建了許多基本的繪圖指令，讓我們可以很輕鬆地使用，但是`ggplot2`提升了繪圖的層次，所以我們也必須認識`ggplot2`。  
+</p>
+
+## 基本概念
+<p>
+首先我們先認識一些繪圖的元素。首先是「點」、「線」、「大小」、「粗細」以及「顏色」。 
+</p>
+<p1>
+<li><span style="color:red;">cex</span> 控制點的大小</li>
+<li><span style="color:red;">col</span> 控制顏色，也可以是灰階的濃度</li>
+<li><span style="color:red;">pch</span> 控制點的形狀</li>
+<li><span style="color:red;">lwd</span> 控制線的粗細</li>
+<li><span style="color:red;">lty</span> 控制線的形狀</li>
+
+</p1>
+
+下圖表示10種不同濃度黑色、10種不同形狀以及2種大小的點狀的散佈圖，加上粗細、顏色、形狀不同的垂直與水平線。
+```{r}
+xn<-c(1:10)
+yn<-c(1:10)
+col<-c(80, 75, 70, 60, 50, 40, 30, 20, 10, 0)
+graycol<-paste("gray",col,sep="")
+graycol
+plot(xn, yn,
+  cex=c(rep(1, 5), rep(2,5)),
+  col=graycol,
+  pch=c(1,2,5,6,8, 16, 17, 20, 22, 24),
+  xlab="pch", ylab="cex",
+  xaxt="n", yaxt="n",
+  xlim=c(0,11),ylim=c(0,11), font.lab=2, cex.lab=1.5)
+axis(1, at=c(1:10), labels=c(1,2,5,6,8, 16, 17, 20, 22, 24))
+axis(2, at=c(1:10), labels=c(rep(1, 5), rep(2,5)))
+abline(v=6, lwd=2, col='red'); abline(h=6, lwd=3, lty=2)
+```
+
+從以上的指令以及圖形不難看出一些常用圖形參數。另外要說明幾個參數：
+<p1>
+<li><span style="color:red;">xlab</span> 控制X軸的標題</li>
+<li><span style="color:red;">ylab</span> 控制Y軸的標題</li>
+<li><span style="color:red;">main</span> 控制圖形標題</li>
+<li><span style="color:red;">xlim</span> 控制X軸最高的值</li>
+<li><span style="color:red;">ylim</span> 控制Y軸最高的值</li>
+<li><span style="color:red;">xaxt='n'</span> 控制X軸不顯示任何數字</li>
+<li><span style="color:red;">yaxt='n'</span> 控制Y軸不顯示任何數字</li>
+<li><span style="color:red;">axis</span> 控制X軸或是Y軸顯示的數字（<span style="color:red;">labels</span> ）以及位置（<span style="color:red;">at</span> ）</li>
+<li><span style="color:red;">font.lab</span>控制X, Y軸名稱的大小</li>
+<li><span style="color:red;">cex.lab</span>控制X, Y軸刻度名稱的大小</li>
+</p1>
+那麼我們如何應用到資料分析？例如我們有一筆資料，其中有兩個連續變數，我們可以用散佈圖來檢視：
+
+```{r}
+with(anscombe, plot(x1, y1, pch=16, cex=2, col='blue',
+     xlab='X', ylab='Y', main='x1-y1'))
+```
+
+用<span style="color:green;">points</span>有同樣的效果，但是要先幫觀察值畫一個框：
+```{r}
+with(anscombe, summary(x1))
+with(anscombe, summary(y1))
+x<-c(1: max(anscombe$x1))
+y<-c(1: max(anscombe$x1))
+plot(x, y, type='n')
+with(anscombe, points(x1, y1, pch=16, cex=2, col='gray25'))
+```
+
+用<span style="color:green;">points</span>繪圖標示兩個變數對應的數值，可以控制散佈圖顯示的圖案：
+```{r}
+x<-c(1: max(anscombe$x1))
+y<-c(1: max(anscombe$x1))
+plot(x, y, type='n')
+
+with(anscombe, points(x1[which(x1<=8)], y1[which(x1<=8)], pch=16, cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], y1[which(x1>8)], pch=16, cex=2, col='darkblue'))
+abline(v=8, lwd=2, lty=3)
+```
+
+上圖顯示x1超過8是深藍色的圓點，小於8是紅色的點。
+
+```{r}
+plot(x, y, type='n')
+with(anscombe, points(x1[which(x1<=8)], y1[which(x1<=8)], pch=16, cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], y1[which(x1>8)], pch=16, cex=2, col='darkblue'))
+abline(v=8, lwd=2, lty=3)
+with(anscombe, text(x1, y1, c(1: nrow(anscombe)), pos=4))
+```
+
+用<span style="color:green;">text</span>可以加上文字，讓讀者更容易瞭解觀察值的屬性。<span style="color:red;">pos</span> 控制文字的位置。也可以貼上觀察值本身的數字：
+
+```{r}
+plot(x, y, type='n', xlim=c(1, 16), xaxt='n')
+axis(1, labels = c(2:15), at=c(2:15))
+with(anscombe, points(x1[which(x1<=8)], y1[which(x1<=8)], pch=16, cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], y1[which(x1>8)], pch=22, cex=2, col='darkblue'))
+abline(v=8, lwd=2, lty=3)
+with(anscombe, text(x1, y1, paste(x1, y1, sep=","), pos=4))
+```
+
+
+繪圖時要記得兩個變數的長度需要一致。請大家幫忙想想如何幫上面這個圖裡面的觀察值數字加上括號？
+<hr>
+## 直方圖
+<p>
+直方圖可以表現單一類別變數的分佈，例如：
+</p>
+</ul>
+```{r}
+students<-read.table('studentsfull.txt', header=T, sep='')
+stu <- table(students$Department)
+barplot(stu, main="Departments", 
+xlab="", ylab="frequency")
+```
+
+直方圖的對象應該是具有名稱的摘要，所以要先把數字、字串或者是類別的向量改為表格的形式。直方圖也可以改直方本身的顏色以及外框的顏色。
+```{r}
+barplot(100*stu/nrow(students), main="Departments", 
+      xlab="", ylab="Percent", border='red', col='cyan', ylim=c(0, 20))
+```
+
+如果想要表現兩個變數的交集，例如經濟系裡面有多少男生或女生的比例，可以先產生一個交叉列表，然後用<span style="color:green;">prop.table()</span>的函數產生條件機率，就可以繪出堆疊的直方圖：
+
+
+```{r}
+student.table <- table(students$Gender, students$Department)
+barplot(100*prop.table(student.table, margin=2), 
+         col=c('brown', 'white'),
+        legend = levels(unique(students$Gender)))
+```
+
+如果想要更改類別的名稱，可以直接在<span style= "color:red">barplot()</span>之中設定參數：
+```{r}
+barplot(100*prop.table(student.table, margin=2),
+      names.arg=c("Aer","Che.", "Eco.", "Eng.", "Jou.", "Mec.","Phy.")) 
+```
+<hr>
+
+## 盒型圖 (Box Plot)
+
+盒型圖又稱為箱型圖，於1977年由普林斯頓大學統計系教授約翰·圖基（John Tukey）發明。可以表現單一連續變數的中位數、25分位數、75分位數、極端值等等，也可以比較不同類別之下，連續變數的分佈情形。  
+例如我們觀察<span style="font-weight:bold">mpg</span>這個變數的盒型圖：
+```{r}
+boxplot(mtcars$mpg, ylim=c(0,40), yaxt='n')
+```
+
+中間的粗線代表中位數。盒型圖上方的線稱為inner fence或者是whisker，代表數列的極大值與75分位數加上四分位距的1.5倍兩個其中的極小值，下方的線代表數列的極小值與25分位數減去四分位距的1.5倍兩個其中的極大值。四分位距則是75分位數減去25分位數。超出inner fences被稱為極端值（outlier）。
+
+為了確認以上的定義，計算這個變數的25與75分位數： 
+```{r}
+quantile(mtcars$mpg, c(.25, .5, .75), type=6)
+```
+
+<span style="font-weight:bold">mtcars</span>裡面的<span style="font-weight:bold">mpg</span>的IQR約等於7.6，所以75分位數加上四分位距的1.5倍與25分位數減去1.5倍四分位距可用`R`計算如下：
+
+```{r}
+qu<-quantile(mtcars$mpg, c(.25, .5, .75), type=7)
+qu
+upper<- qu[3]+1.5*(qu[3]-qu[1])
+lower<- qu[1]-1.5*(qu[3]-qu[1])
+cat("upper", upper); cat("/", "lower", lower)
+
+# upper inner fence
+min(max(mtcars$mpg), upper)
+# lower inner fence
+max(min(mtcars$mpg), lower)
+```
+
+畫盒型圖對照上述的計算結果：
+```{r}
+boxplot(mtcars$mpg, ylim=c(0,40), yaxt='n')
+axis(2, at=c(1:40, by=5), labels=c(1:40,by=5))
+```
+
+上述的資料並沒有極端值，我們可以觀察美國各州的面積：
+
+```{r}
+boxplot(state.area, ylab="Area of State")
+```
+
+<ul> 
+然後請輸入下列指令：
+</ul>
+<ul>
+<span style="color:blue">y<-state.abb</span>   
+</ul>
+<span style="color:blue">identify(rep(1, length(y)), y, labels=seq_along(y)))</span>
+<ul>用滑鼠對著圖形點擊，如果出現已經找到最近的點，可以按旁邊的finish，然後會呈現哪幾個觀察值被標示在圖形上面。例如第二個州是阿拉斯加，面積最大。</ul>
+我們可以對類別變數繪製另一個連續變數的箱型圖，例如：
+```{r}
+Orange$tree <-ordered(Orange$Tree, levels=c(1,2,3,4,5))
+with(Orange, boxplot(circumference ~ tree))
+```
+
+由上圖可以看出，第一類型的四分位距比較小，其次是第三類型。而第四類型的中位數最大。
+
+<hr>
+## 長條圖 (Histogram)
+因為連續變數有一定數量的值，而非像類別變數的值是離散的，所以應該用長條圖來呈現。例如：
+```{r}
+hist(USArrests$Assault, density=6)
+```
+
+上圖的指令中，<span style="color:red">density</span>參數可以產生斜線陰影。而連續變數的每一個值的相對比例可以幫助我們了解分佈型態，因此，<span style="color:red">freq=F</span>參數強制長條圖呈現相對的比例，而非次數。
+```{r}
+hist(USArrests$Assault, col="red", freq = F, xlab="Assault", main="Assault in 50 States")
+```
+
+我們用模擬的資料來表現長條圖的參數<span style="color:red">break</span>的用途，左邊的圖最多有10個等分，右邊的圖則是可以到50個，所以右邊的圖顯示比較多的直條。
+```{r}
+par(mfrow=c(1,2))
+
+y <- c()
+for (i in 1:1000)
+{x=rnorm(1000,0,1)
+ x.sample <- sample(x, 100)
+  y[i]=mean(x.sample)}
+
+hist(y, 10, probability = T)
+rug(jitter(y))
+hist(y, 50, probability = T)
+rug(jitter(y))
+
+```
+
+在長條圖上面可以加上特定分布的曲線，例如常態分佈曲線或者是一致分佈曲線：
+```{r}
+par(mfrow=c(1,1))
+set.seed(02138)
+y <- c()
+for (i in 1:1000)
+{x=rnorm(1000,0,1)
+ x.sample <- sample(x, 100)
+  y[i]=mean(x.sample)}
+
+hist(y, 100, probability = T, col="gray90")
+
+curve(dunif(x, min=min(y), max=max(y)), add=T, col="blue", lwd=2)
+
+curve(dnorm(x, mean=mean(y), sd=sd(y)), add=T, col="red", lwd=2)
+```
+
+從上面的圖可以看出模擬的資料近似常態分佈，而常態分佈曲線比一致分佈曲線更接近資料分佈。
+
+<hr>
+## 折線圖 (Line Chart)
+之前在介紹散佈圖時，曾經設定參數<span style="color:blue">type='n'</span>，使觀察值不顯示出來，而除了<span style="color:blue">type='n'</span>，還有<span style="color:blue">b, c, h, o, p</span>等5個選項。而且，可以用單一變數繪圖表示分佈型態。例如：
+```{r}
+with(airquality, plot(Wind, type='b'))
+```
+
+或者是：
+```{r}
+plot(state.area, type='o', pch=16, cex=1.2, lty=2, lwd=2, col='red')
+```
+<ul>可以設定線條的形式、粗細以及連接點的顏色、大小與形狀 </ul>
+
+<h2>時間序列資料</h2>
+資料有時間序列的型態，適用以折線圖顯示，例如<span style="color:blue">LakeHuron</span>這筆資料是時間序列資料，裡面的參數設定為<span style="color:red">type='o'</span>。
+```{r}
+plot(LakeHuron, type = "o", pch=16, cex=1.2, lty=2)  ## Index plot
+```
+
+那麼我們要如何建立時間序列資料？<span style="color:blue">ts()</span>函數可以轉換一個資料框為時間序列資料，要注意設定起始的時間點，可以以月份來切分，如果頻率為1，就是以1年為單位，如果頻率為2，就是半年，頻率為4，就是3個月：
+```{r}
+trend<-read.csv("tondutrend.csv",
+            header=T, sep=",",fileEncoding="BIG5")
+tonduts<-ts(trend, start=1992.6,frequency=2)
+```
+
+相對於其他軟體，`R`的優點在於允許時間點有缺漏，畫出來的圖形就有缺少某個或是某些時間點，不會強制連接前後兩個時間點。接下來是畫折線圖：
+```{r}
+# Plot
+par(xpd=NA, mar=par()$mar+c(2.5, 0, 0, 0))
+plot(tonduts, plot.type=c("single"), lty=c(1,2,2,3),
+     ylab="%",xlab=NULL,pch='1', lwd=3,frame.plot=F,
+     col=c("gray20","gray60", "black", "gray80"),
+     xaxt="n")
+axis(1, at=seq(1992,2014,by=2))
+axis(2, at=seq(10,60,by=10))
+legend("bottomright", c("unification","status quo"),
+        inset=c(0.35, -0.4), col=c("gray20","gray60"),
+             lty=c(1,2), bty='n', lwd=3)
+legend("bottomright", c("independence","don't know"), 
+        inset=c(0, -0.4), col=c("black", "gray80"),
+             lty=c(2,3), bty='n', lwd=3)
+text(2000, 30, paste("First Party Turnover"))
+```
+
+在這個圖形中，我們設定<span style="color:red">xpd=NA</span>，允許圖形超過界線，而且設定圖形的邊線可以到原來區域的底部2.5個文字。這是因為折線有四條，需要一定的空間容納圖例，而為了避免與圖形重疊起見，我們把圖例放在X軸右下方，所以除了要設定參數<span style="color:red">"bottomright"</span>，還要設定<span style="color:red">inset(0.35, -0.6)</span>以及<span style="color:red">inset(0, -0.6)</span>。除了設定圖例出現的位置，還可以設定<span style="color:red">bty="n"</span>，強制圖例沒有外框。  
+最後，我們加上一點註解文字到圖形上面，當然，我們可以加上線條或是箭頭，請大家研究一下<span style="color:blue">segment</span>這個指令。  
+相信這個折線圖會讓你的報告比其他軟體畫的圖看起來更專業。
+
+<hr>
+## 特殊點狀圖
+<span style="color:red">symbols()</span>可以產生指定形狀、大小的散佈圖，而且可以進一步根據另一個變數的觀察值，調整散佈點的大小，例如：
+```{r}
+with(anscombe, symbols(x2, y1, circles=anscombe$x1,  
+          inches=0.2, fg='blue'))
+```
+
+可以看出有些圈圈比較大，有些比較小。再舉一個例子：
+
+```{r}
+with(USArrests, symbols(Murder, Assault, circles=UrbanPop,
+                         inches=0.12, bg="red"))
+```
+
+
+上圖顯示，雖然搶案與攻擊成正比，但是都市化人口越多的地方，不見得有更多的類似案件。
+
+<hr>
+# 圖形進階(ggplot2)
+
+接下來我們介紹用`ggplot2`繪圖。基本的指令為：
+
+<span style="color:saddlebrown">ggplot(data, aes(x, y, group,...)) + geom_object () + theme() </span>
+
+<p1>
+
+ <li> <span style="color:red">geom_object</span>可以是<span style="color:red">geom_bar</span>、<span style="color:red">geom_point</span>、<span style="color:red">geom_rect</span>等等。  </li>
+ <li>繪圖的對象應該是資料框或是tibble的變數之一。  </li>
+ <li>繪圖之前應該特別注意變數是哪一種型態。  </li>
+ <li>這個網頁有許多`ggplot2`的例子：http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Ordered%20Bar%20Chart </li>   
+ 
+</p1>
+<hr>
+## 直方圖 (Bar plot)
+變數屬於數字、類別或是字串都可以以直方圖表示。例如：
+```{r}
+ggplot(ChickWeight, aes(x=Diet), stat='bin') +
+  geom_bar(fill='red', col='blue') +
+  ggtitle('Diet')
+```
+
+或者是先轉換成表格，但是要設<span style="color:blue">stat="identity"</span>，畫成：
+```{r barplot3, fig.cap="Table and Barplot"}
+students<-read.table('studentsfull.txt', header=T, sep='')
+stu.t <- as.data.frame(table(students$Department, dnn=c("Dep")))
+stu.t
+g1 <- ggplot(stu.t, aes(x=Dep, y=Freq)) + 
+  geom_bar(stat = 'identity', fill='darkgreen') +
+  ylab('Count')
+g1
+```
+
+**加上數據**
+
+用已經統計好的數字當作標記(label)，而該數字加上或是減去某個單位當作y，用<span style="blue">geom_text()</span>標上數據：
+```{r}
+g1 + geom_text(data=stu.t, aes(x=Dep, label=Freq, y=Freq+0.2), size=8)
+```
+
+之前已經畫過有兩個變數的直方圖，我們用<span style="color:blue">mutate</span>產生一個新的變數<span style="font-weight:bold">Pass</span>，兩者的交叉列表可以顯示如下：
+```{r, fig.cap = c("Barchart of Two Variables by ggplot2")}
+library(dplyr)
+students<-read.table('studentsfull.txt', header=T, sep='')
+stu <- dplyr::mutate(students, Pass=(Score>70))
+head(stu)
+```
+
+然後畫成並列的直方圖：
+```{r, fig.cap="Barplot Side by Side"}
+ggplot(stu, aes(x=Department, fill=Pass)) + 
+          geom_bar(position='dodge')
+```
+
+之前的直方圖的色塊表示條件機率，我們可以用<span style="color:blue">summarize</span>產生<span style="color:red">Count</span>這個變數，代表每個系通過或是沒通過的個案數。然後用<span style="color:blue">mutate</span>產生以系所為邊際機率的條件機率。
+
+```{r}
+stu <- dplyr::mutate(students, Pass=(Score>70))
+stu.ag <- summarize(group_by(stu, Department, Pass), Count=n())
+stu.ag <- mutate(stu.ag, Pct=Count/sum(Count))
+head(stu.ag)
+```
+
+畫成圖表示上列數據：
+```{r, fig.cap="Barplot with Percentage"}
+ggplot(stu.ag, aes(x=Department, y=Pct, fill=Pass)) +
+   geom_bar(stat='identity') +
+  scale_y_continuous(label = scales::percent)
+```
+
+
+```{r include=F}
+#library(ggplot2)
+#students<-read.table('studentsfull.txt', header=T, sep='')
+#stu.ag <- dplyr::mutate(students, Pass=(Score>70))
+#ggplot(data=stu.ag, aes(x=Department, group=Pass)) +
+#geom_bar(aes(x=Department, y=(..count../sum(..count..)), fill=Pass),  stat='identity') +
+#      scale_y_continuous(label = scales::percent)
+```
+<hr>
+## 長條圖 (Histogram)
+`ggplot2`的長條圖跟直方圖類似，但是適用在連續變數。參數<span style="color:red">stat='bin'</span>指定每一長條的寬度，寬度越寬，越容易黏合在一起，但是也可能越不容易分辨分佈的型態：
+
+```{r, fig.cap="Histogram"}
+ggplot(mtcars, aes(x=mpg)) + geom_bar(stat='bin', binwidth=1)
+```
+
+長條圖可以轉換成密度圖，而且可以按照對應的類別變數並列在同一張圖：
+```{r, fig.cap="Density Histogram"}
+library(ggplot2)
+ggplot(mtcars, aes(x=wt, fill=as.factor(am))) +
+  geom_density(position="identity", alpha=.4)
+```
+
+
+<hr>
+## 散佈圖 (scatter plot)
+
+如果需要表現兩個變數之間的關係，散佈圖可以顯示兩個變數對應的位置：
+```{r, fig.cap='Scatter Plot'}
+ggplot(mtcars, aes(x=wt, y=mpg)) +
+    geom_point()
+```
+
+可以加上迴歸線表現兩個變數的相關：
+```{r, fig.cap="Scatter Plot with Regression Line"}
+ggplot(mtcars, aes(x=wt, y=mpg)) +
+    geom_point(col='red') +
+    geom_smooth(method="lm", se=F, col='blue')
+```
+
+也可以用非線性迴歸線表示兩者的相關：
+```{r, fig.cap='Scatter Plot with LOESS Line'}
+ggplot(Orange, aes(x=age, y=circumference)) +
+   geom_point(aes(col=Tree), size=3) +
+   geom_smooth(method="loess", se=F) +
+   theme_bw()
+```
+
+<hr>
+
+## 三個變數之散佈圖
+
+兩個變數的散佈圖可表示兩個變數之間的相關：
+```{r, fig.cap="Scatter plot"}
+ggplot(anscombe, aes(x=x1, y=y1)) +
+  geom_point(size=3) 
+```
+
+如果加上另一個變數，可以表示當另一個變數等於某一個類別時，兩個變數是否仍然維持一樣的關係？我們用<span style="color:red">shape</span>設定形狀隨著類別變數而改變，然後隨著類別變數改變顏色：
+```{r, fig.cap="Scatter plot with a control variable"}
+n <- nrow(anscombe)
+anscombe$r <- rep(0, n)
+anscombe$r[anscombe$x1>8]<-1
+sc1<-ggplot(anscombe, aes(x=x1, y=y1, shape=factor(r))) 
+sc1 + geom_point(aes(color=factor(r)) , size=3) 
+```
+
+也可以隨著連續變數而改變顏色深淺：
+```{r, fig.cap="Scatter plot with a contineous variable"}
+sc2<-ggplot(anscombe, aes(x=x1, y=y1)) 
+sc2 + geom_point(aes(color=x2) , size=3) 
+```
+
+<hr>
+## 盒型圖 (Box plot)
+
+盒型圖可以表現一個變數或者是一個類別變數對應另一個連續變數的分佈，不過`ggplot2`無法直接畫出一個連續變數的盒型圖，所以我們先創造一個只有一個值的變數，然後對應我們要顯示的連續變數，例如：
+
+```{r, "Boxplot of mpg"}
+mtcars <- mutate(mtcars, X=1)
+ggplot(mtcars, aes(x=X, y=mpg)) +
+     geom_boxplot() +
+  labs(x="",y='mpg') +
+  stat_summary(fun.y=median, geom="point", shape=16, size=2) +
+  theme_bw()
+```
+
+盒型圖可以用來比較一個類別變數對應的連續變數的分佈，例如我們想要顯示不同的氣缸數（<span style="color:blue">cyl</span>）的馬力（<span style="color:blue">hp</span>），可以把y設定為（<span style="color:blue">hp</span>），然後把x, group設定為（<span style="color:blue">cyl</span>）：
+```{r, fig.cap="Boxplot of Two Variables"}
+g1 <-ggplot(mtcars, aes(x=cyl, y=hp, group=cyl)) +
+  geom_boxplot()  +
+  labs(x='Cylinder', y="Horse Power") +
+  stat_summary(fun.y=median, geom="point", shape=16, size=2) +
+  theme_bw()
+g1
+```
+
+由於（<span style="color:blue">cyl</span>）是數字變數，我們發現有一些我們不需要的類別，沒有資料與其對應，因此我們用由於（<span style="color:red">scale_x_discrete</span>）加以調整，也就是只留下需要的類別數字，然後加上所需要的標籤：
+```{r}
+g1 + scale_x_discrete(limit = c(4, 6, 8),
+                     labels = c("4","6","8")) +
+              theme_bw()
+```
+
+類似的技巧可以適用在Y軸，例如我們只想顯示50到200的馬力，超過200以上的資料就會被去掉：
+
+```{r}
+g1 + scale_y_continuous(limits = c(50,200)) +
+       scale_x_discrete(limit = c(4, 6, 8),
+                     labels = c("4","6","8")) +
+              theme_bw()
+```
+
+
+<hr>
+## 甜甜圈圖
+
+過去有所有的圓餅圖，甜甜圈圖可以顯示資料的次數分佈，例如我們想知道`ggplot2`裡面的的`diamonds`資料中的<span style="color:red">cut</span>的次數分配，先針對這個變數計算個數：
+```{r, fig.cap="Ring Plot"}
+# 
+dt <-group_by(diamonds, cut)
+dat = summarize(dt, count=n())
+dat
+```
+
+再計算比例：
+```{r}
+# Add addition columns, needed for drawing with geom_rect.
+dat$fraction = dat$count / sum(dat$count)
+dat = dat[order(dat$fraction), ]
+dat$ymax = cumsum(dat$fraction)
+dat$ymin = c(0, head(dat$ymax, n=-1))
+dat
+```
+
+然後畫圖：
+```{r, , fig.cap="Ring Plot"}
+p1 = ggplot(dat, aes(fill=cut, ymax=ymax, ymin=ymin, xmax=4, xmin=3)) +
+     geom_rect() +
+     coord_polar(theta="y") +
+     xlim(c(0, 4)) +
+     theme(panel.grid=element_blank()) +
+     theme(axis.text=element_blank()) +
+     theme(axis.ticks=element_blank()) +
+     annotate("text", x = 0, y = 0, label = "Diamond Cut") +
+     labs(title="") +
+     xlab("") +
+     ylab("")
+p1
+```
+
+
+<hr>
+## 折線圖
+之前我們用`R`的基本指令對`airquality`這筆時間序列資料畫折線圖，
+```{r, fig.cap="Line Plot with Wrong Index"}
+ggplot(airquality, aes(x=Day, y=Wind)) +
+  geom_line()
+```
+
+這個圖看起有很多重疊的地方，原因是日期是從1日到30日或是31日循環出現，所以我們可以創造一個新的變數，可以顯示時間序列：
+
+```{r, fig.cap="Line Plot with an Index"}
+N <- summarize(airquality, n())
+airquality <- mutate(airquality, index=seq_along(1:N[,1]))
+ggplot(airquality, aes(x=index, y=Wind)) +
+  geom_line() 
+```
+
+我們示範如何把原來的月份與日變數轉換成日期：
+```{r}
+airquality$Date <- paste0(airquality$Month, "/", airquality$Day) 
+airquality$Date  <- as.Date(airquality$Date, format="%m/%d")
+```
+
+然後用日期畫折線圖：
+```{r, fig.cap="Line Plot with Date"}
+ggplot(airquality, aes(x=Date, y=Wind)) +
+  geom_line() 
+```
+
+進一步可以顯示不只一項的折線圖，但是我們需要轉置資料為長表，在轉置之前先選擇兩個變數加上日期：
+
+```{r}
+airquality.n <- select(airquality, Date, Wind, Temp)
+library(reshape2)
+airquality.l<-melt(airquality.n, id.vars=c('Date'))
+```
+
+由於這兩個變數的大小範圍接近，可以畫在一張圖上面：
+```{r, fig.cap='Multiple Timeseries in a Line Plot'}
+ggplot(airquality.l, aes(x=Date)) +
+  geom_line(aes(y=value, col=variable)) 
+```
+
+## 特殊圓點圖 
+
+`ggplot2`可以應用在比較迴歸係數的大小以及標準誤的範圍，方便讀者瞭解模型的估計結果。例如我們估計有三個自變數的迴歸模型：
+```{r}
+m1 <- with(mtcars, lm(mpg ~ wt + hp + am))
+summary(m1)
+```
+
+然後我們建立一個資料框，裡面包含係數以及對應的標準誤，但是為了分析方便，我們去掉截距。  
+同時，我們產生兩個變數，第一個是標準誤的下限，第二是標準誤的上限：
+```{r}
+df <- data.frame(coef=coef(m1)[-1], se=coef(summary(m1))[-1, "Std. Error"] )
+
+dt <- mutate(df, lower=coef-qt(0.975, nrow(mtcars))*se, upper=coef+qt(0.975, nrow(mtcars))*se)
+
+```
+
+一切就緒後，我們利用<span style="color:blue">geom_segment</span>這個參數，產生線段，原理是<span style="color:red">x</span>到<span style="color:red">xend</span>，以及<span style="color:red">y</span>到<span style="color:red">yend</span>分別產生線段：
+```{r}
+s1 <- ggplot() + 
+  geom_segment(data=dt, mapping=aes(x=row.names(dt),  y=lower, xend=row.names(dt), yend=upper), 
+                size=2, color="blue") 
+s1
+
+```
+
+
+然後加上代表係數的圓點，並加上係數的名稱，以及把X軸與Y軸對調，就大功告成。
+```{r, fig.cap="Coefficient Plot"}
+s1 + geom_point(data=dt, aes(x=row.names(dt), y=coef), size=4, shape=21, fill="white") +
+    scale_x_discrete(breaks=c("1","2","3"),
+        labels=c("Weight", "Horse Power", "Auto")) +
+    ylab("") +
+    xlab("Estimates")  +
+    coord_flip()  +  
+    theme(axis.text.y = element_text(face="bold", color="#993333", 
+                           size=14) )
+```
+
+
+從這個係數圖可以看出是否自動排檔對於依變數的影響相對來得大，但是有可能等於0，因為標準誤的下限低於0。  
+雖然上圖已經相當美觀，但是仔細觀察，會發現係數的順序反過來了。要改變這個情形，可以用<span style="color:blue">rev()</span>這個函數改變向量的元素順序，例如：
+```{r}
+V<-c(50, 100, 30, 200)
+rev(V)
+```
+
+<hr>
+
+除了上述的圖形，`ggplot2`還有更多有趣的圖形，也允許使用者設定圖形風格、資料點顏色、副標題、圖例的標題等等，請同學上網多多參考他人的例子。例如以下的圖顯示經濟學人雜誌風格的直方圖：
+
+```{r}
+library(ggthemes)
+# Number of Cases
+dt <- data.frame(Year=c(2013, 2014, 2015, 2016, 2017),
+                 Amount=c(65, 56, 78, 85, 79))
+# Economist theme
+p1<-ggplot() + theme_economist() + scale_fill_economist() +
+geom_bar(aes(x=Year, y=Amount),
+         data=dt, stat='identity')
+#data label
+p3 <- p1+ theme(axis.title= element_text(color="blue", size=14, face="bold"),
+        axis.text = element_text(size=14),
+        legend.text=element_text(size=18))+
+   ggtitle("Number of Cases") +
+      labs(y="N", subtitle="Children, Spouses, Financial, etc.")
+p3
+```
+
+
+<hr>
+# 作業
+<p1>
+1. 請針對`mtcars`這筆資料的<span style="font-weight:bold;">wt</span>以及<span style="font-weight:bold;">mpg</span>繪製散佈圖，並且加上車輛的名稱：</p1>
+```{r include=F}
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+##
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+with(mtcars, text(wt, mpg, row.names(mtcars), cex=0.6, pos=4, col="red"))
+```
+<p1>
+2. 請針對`ChickWeight`的，<span style="color:blue;">Diet</span>變數畫出直方圖，並且標示次數（提示：text(x, y, labels)，x, y 分別是標示次數的位置，而標示次數要轉為字串）。</p1>
+```{r include=F}
+bartable <- table(ChickWeight$Diet)
+mp <- barplot(bartable, xlab="Diet", col='white',
+              cex.axis = 1.5, cex.names = 1.5)
+freq <- c(bartable[[1]],bartable[[2]],bartable[[3]],bartable[[4]])
+
+text(mp, freq, as.character(freq), pos=1, col='red')
+```
+<p1>
+3. 請畫直方圖表示`mtcars`這筆資料中的變速箱（<span style="font-weight:bold;">am</span>）是屬於自動或是手動排檔之中，<span style="font-weight:bold;">gear</span>的比例。</p1>
+```{r include=F}
+mt.table <- table(mtcars$gear, mtcars$am)
+barplot(100*prop.table(mt.table, margin=2), 
+         col=c('brown', 'yellow', 'green'),
+        legend = unique(mtcars$gear),
+         names.arg=c('automatic','manual'))
+```
+<p1>
+4. 請畫圖表示<span style="color:blue">Nile</span>的水位變化，並且指出大概是哪一年的水位最低與最高：</p1>
+```{r include=F}
+plot(Nile, type = "o", pch=16, cex=1.2, lty=2, xaxt='n')
+axis (1, at=c(1871:1970, by=1), labels=c(1871:1970, by=1))
+# highest about 1882
+# lowest about 1913
+```
+<p1>
+5. 請從<span style="font:bold">CS3171D1A.csv</span>資料選取前五個縣市，然後針對老年人口比率畫2000至2010年的折線圖，並且於圖例標示五個縣市。</p1>
+
+```{r include=F}
+library(foreign); library(reshape2)
+stat.dat<-read.csv("CS3171D1A.csv",header=TRUE,sep=";",dec=".",fileEncoding="BIG5")
+tempold <- stat.dat[-1,]
+tempold2 <- tempold[1:11, 1:6]
+countyname<-colnames(tempold2)[2:6]
+oldts <- ts(tempold2, start=2000, frequency=1)
+oldts2 <- oldts[, -1]
+par(xpd=NA, mar=par()$mar+c(2.5, 0, 0, 0), family="YouYuan")
+plot(oldts2, plot.type=c("single"), lty=c(1,2,2,1,3),
+     ylab="%",xlab=NULL,pch='1', lwd=3,frame.plot=F,
+     col=c("gray20","gray60", "black", "blue","blue"),
+     xaxt="n", ylim=c(0,15), yaxt="n", main="老年人口")
+axis(1, at=seq(2000,2010,by=1))
+axis(2, at=seq(0, 15,by=1))
+legend("bottomright", countyname[1:3],
+        inset=c(0.35, -0.6), col=c("gray20","gray60", "black"),
+             lty=c(1,2,2), bty='n', lwd=3)
+legend("bottomright", countyname[4:5],
+        inset=c(0.1, -0.6), col=c("blue","blue"),
+             lty=c(1, 3), bty='n', lwd=3)
+```
+<p1>
+6. 請畫圖表示`mtcars`這筆資料中的<span style="font-weight:bold;">gear</span>的各個類別的<span style="font-weight:bold;">mpg</span>。</p1>
+```{r include=F}
+with(mtcars, boxplot(mpg ~ gear))
+```
+<p1>
+7. 種族與社會經濟地位有關嗎？請用`ggplot2`繪製直方圖顯示<span style="color:blue">hsb2</span>的<span style="font-weight:bold">race</span>與<span style="font-weight:bold">ses</span>的關係。</p1>
+```{r include=F}
+hsb2 <- read.dta('hsb2.dta')
+hsb2.ag <- summarize(group_by(hsb2, race, ses), Count=n())
+hsb2.ag <- mutate(hsb2.ag, Percent=Count/sum(Count))
+ggplot(hsb2.ag, aes(x=race, y=Percent, fill=ses)) +
+   geom_bar(stat='identity') +
+    scale_y_continuous(label = scales::percent)
+```
+<p1>
+8. 請針對`flights`這筆資料之中的<span style="color:blue">arr_delay</span>，畫圖顯示每一家航空公司(<span style="color:blue">carrier</span>)的分布情況：</p1>
+
+```{r include=F}
+library(nycflights13)
+ggplot(flights, aes(x=arr_delay, fill=as.factor(carrier))) +
+   geom_density(position='identity')
+```
+<p1>
+9. 請畫出`airquality`這筆資料的`Ozone`變數折線圖：
+</p1>
+```{r include=F}
+airquality$Date <- paste0(airquality$Month, "/", airquality$Day) 
+airquality$Date  <- as.Date(airquality$Date, format="%m/%d")
+ok <- !is.na(airquality$Ozone)
+airquality.ok <- filter(airquality, ok==TRUE)
+ggplot(airquality.ok, aes(x=Date)) +
+     geom_line(aes(y=Ozone), col="#008080")
+```
+
+<p1>
+10. 請畫點狀圖顯示下列的資料（原始出處與圖形請見[Pew Research Center](http://www.journalism.org/2018/05/14/in-western-europe-public-attitudes-toward-news-media-more-divided-by-populist-views-than-left-right-ideology/)）：
+
+</p1>
+
+```{r}
+library(dplyr)
+DT <- tibble(Country=c("Spain", "France", "Germany","Italy", "Sweden"),
+             Populist=c(52,58,65,50, 73),
+             Mixed=c(70,72,70,65,81),
+             Nonpopulist=c(85,84,88,68, 90))
+DT
+```
+<p1>
+提示：
+
+ <li>請轉換為tidy data  </li>
+ <li>請考慮使用`ggthemes`套件 </li> 
+
+</p1>
+```{r include=F}
+library(reshape2)
+DT2<-melt(DT, id.vars=c("Country"))
+DT2
+```
+
+```{r include=F}
+library(ggplot2); library(ggthemes)
+D1 <- ggplot(DT2, aes(x=Country, y=value, label=value)) +
+   geom_point(stat="identity", aes(color=variable), size = 8) +
+  geom_text(vjust = 3, size=3) +
+  #geom_segment(aes(x=Country, xend=Country, y=rep(0,15), yend=rep(100,15)), col="#CCEEFF")+
+  coord_flip()+
+  theme_fivethirtyeight()
+D1
+  
+```
