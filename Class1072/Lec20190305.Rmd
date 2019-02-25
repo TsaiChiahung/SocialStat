@@ -1,0 +1,750 @@
+---
+title: "社會科學統計方法（107學年第2學期260940001）"
+subtitle: "資料型態、資料結構、基本運算 (v1.0)"
+author: "蔡佳泓"
+date: '2019/3/5'
+output: 
+  html_document:
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    fig_caption: true
+    #pandoc_args: ["-F","pandoc-crossref"]
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+
+---
+<style>
+
+div {
+    background-color: #FFECC9;
+         line-height: 1.5;
+  }
+
+div >  p {
+    font-size: 22px;
+    text-indent: 24px;
+    font-style: BiauKai;
+    color:#171717; padding:10px;
+    font-family: Times, "新細明體", sans-serif;
+  }
+p1 {
+    font-size: 22px;
+    color: #171717;
+    font-family:  "BiauKai", sans-serif; cursive;
+  }
+p2 {
+    font-size: 20px;
+    color: blue;
+    font-family: "儷黑 Pro";
+  }
+p3 {
+   font-family: "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "BiauKai", "微軟正黑體", "Microsoft JhengHei";
+}
+</style>
+  
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(kableExtra)
+#knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "html")
+```
+
+# 課程目標
+本週上課將介紹`R`的資料型態與資料結構，也就是`R`可以讀取並進行運算的對象，例如我們用  `c()` 來表示數字、文字的集合：
+```{r echo=TRUE}
+A<-c("台北市","新北市", "桃園市", "台中市","台南市","高雄市")
+print(A)
+B<-c(0,1,2,3,4,5,6,7,8,9)
+print(B)
+```
+A是文字而B是數字的集合，另外還有邏輯以及日期等常用的資料型態。  
+
+---
+  
+  `R`資料結構可分為一維、二維、多維：
+
+- 一維
+- 向量 (vector)
+- 因素 (factor)
+- 二維
+- 矩陣 (matrix)
+- 資料框 (data frame)
+- 多維
+- 陣列 (array)
+- 列表 (list)  
+- 表格 (table)
+由此出發，了解`R`的資料型態以及運算。
+
+---
+
+介紹`R`的資料型態之前，先來認識`R`的函數。
+函數類似一個黑盒子，把變數或者是資料放進去這個黑盒子，根據函數中的設定，回傳計算的結果。例如，我們想知道一個變數的平均值，`R`的平均值函數為：
+
+```
+?mean
+mean(x, trim = 0, na.rm = FALSE)
+```
+
+`x`為變數，`trim`表示設定要去除多少百分比的變數中的資料。例如有一個變數型態為：
+```{r echo=TRUE}
+x<-c(100000, 10000000, c(1:10)); x
+```
+可以看到這個變數有一些極端值，我們可以用<span style='color:blue'>trim=0.2</span>去掉 $0.2 \times 12=2.4$，等於從這一串數字前後拿掉2個數字。以下比較有無設定傳回的結果：
+```{r echo=TRUE}
+x<-c(100000, 10000000, c(1:10))
+sort(x)
+mean(x)
+mean(x, trim=0.2)
+mean(sort(x)[3:10])
+```
+當<span style='color:blue'>trim=0.2</span>，x剩下第3到第10個資料，也就是x[3:10]。記得用<span style='color:red'>sort()</span>排序x，再取出正確的資料。
+
+我們可以順便認識數字用科學符號表示的方式。e+01代表兩位數，e+05代表6位數。
+
+*Rousselet*的部落格({https://garstats.wordpress.com/2017/11/28/trimmed-means/})進一步介紹為何要去掉極端值。
+
+大部份時候我們執行函數時，不會用到所有的設定，但是越了解每一個函數的設定的意義，越能發揮函數的功能。
+
+---
+
+#       資料型態
+
+##      數值(numeric)
+
+數值可分為數值(numeric)或者是整數(integer)。任意數例如：
+```{r echo=TRUE}
+X<-c(2, 4, 6, 8); X
+class(X)
+str(X)
+```
+<span style='color:red'>class()</span>函數告訴我們該資料型態或者是結構的屬性。
+
+可以用科學符號表示比較大的數字：
+```{r echo=TRUE}
+y=c(1.1e+06); y
+class(y)
+```
+
+整數則為：
+```{r echo=TRUE}
+u<-as.integer(c(4)); class(u)
+```
+
+整數是數值的子集合，因為整數的最大值是2147483647，遠小於數值的最大值。在一般運算或是統計上幾乎沒有差異，唯一的差別在於整數的儲存佔用空間比較小，而一般數值其實帶有小數點，只是沒有顯示，稱為浮點運算。如果某一個變數當作識別碼，可以考慮用整數。  
+請輸入
+
+ <span style="color:blue">is.numeric(100)</span>  
+ <span style="color:blue">is.integer(100)</span>
+
+乍看之下100應該是整數，但是其實是數值。
+又例如：
+```{r echo=TRUE}
+a<-c(7, 8.5, 9); class(a)
+b<-as.integer(a); b
+```
+<span style="color:red">as.integer()</span>傳回整數。
+變數如果與另一個變數對應條件時，`R`會顯示變數性質與對應結果：
+```{r echo=TRUE}
+h<-c(100, 200, 500)
+ok<-h>300
+b[ok]
+ok<-h>1000
+b[ok]
+```
+
+## 字串(character)
+變數可以是字串，例如受訪者的性別、學生的姓名、國家名稱等等。
+請輸入
+
+ <span style="color:blue">state.abb</span>  
+ <span style="color:blue">class(state.abb)</span>
+ 
+文字對於資料使用者而言相對於數值容易理解，但是用途比較受限，無法進行數學運算，但是在資料視覺化時相當有用，例如：
+
+```{r echo=TRUE}
+df<-data.frame(state.abb, pop=state.x77[,2])
+library(lattice)
+dotplot(state.abb ~ pop, data=df)
+```
+
+`state.x77`是矩陣，所以取出這個矩陣中的人口此一欄位，然後與`state.abb`結合成一個資料框，再以`dotplot`指令畫成點狀圖。
+
+數字也可以當成文字，例如：
+```{r echo=TRUE}
+char1<-c("1","2","Word"); char1
+char2<-c(1, 2, "文字"); char2
+```
+
+數字都被視為字串，無法進行數學運算。字串無法用`as.numeric`轉換為數字，但是可以用語法進行轉換（請見因素一節）。
+
+請嘗試
+
+<span style="color:blue">quakes</span>  
+<span style="color:blue">class(row.names(quakes))</span>
+
+quakes這筆資料的列名稱看起來是數字，卻被視為字串。
+
+以及
+
+<span style="color:blue">state.x77</span>  
+<span style="color:blue">class(row.names(state.x77))</span>
+
+字串經常會被誤認為因素(factor)，具有類別，例如1,000個受訪者中可能有500多個男或是女，因此`R`視為因素變數而非字串。
+例如，我們到政府開放資料網站下載一筆資料：
+```{r echo=TRUE, message=FALSE}
+library(foreign); library(tidyverse)
+dat<-read.csv("opendata106N0101.csv", header=T)
+as.tibble(dat)
+```
+可以看出許多變數被視為因素。
+加上<span style="color:blue">stringsAsFactors = F</span>避免把字串當做因素：
+
+```{r echo=TRUE}
+dat<-read.csv("opendata106N0101.csv", header=T, stringsAsFactors = F)
+dat<-as.tibble(dat); dat
+```
+可以看到，新的資料中，變數code被認為是是字串，但是年底人口數、人口密度也被認為是字串。
+我們創造一個新的數字變數來取代字串變數：
+```{r echo=T}
+dat <- dat %>% mutate(popu=as.numeric(年底人口數))
+str(dat)
+```
+<span style="color:red">str()</span>函數可以顯示資料中的變數性質。
+
+### 因素(factor)
+有些資料具有類別，例如性別、是或否、地區等等。Verzani (p.10) 的例子：
+```{r echo=TRUE}
+x=c("Yes","No","No","Yes","Yes"); x
+factor(x)
+table(x)
+```
+在這個例子中，x是字串資料，而`factor()`這個函數把x轉換為因素，有No, Yes兩類別。 
+常用的指令是<span style="color:red">table()</span>，用途為統計向量的分佈。  
+因素在許多分析之中讓人容易理解，例如在交叉分析時：
+```{r echo=TRUE}
+library(car)
+table(Chile$sex, Chile$vote)
+```
+不論是字串或者是因素，比較容易讓人理解交叉分析的結果。例如我們的資料用數字代表地區：
+```{r echo=TRUE}
+Chile$ncode<-as.numeric(Chile$region) 
+table(Chile$ncode, Chile$vote)
+```
+
+或者是繪圖：
+```{r echo=TRUE}
+library(lattice)
+plot(Chile$sex, Chile$vote, xlab="Sex", ylab="Vote")
+```
+
+#### 因素轉換
+有時候我們需要把因素轉換成數值，例如教育程度從國小、國中、...轉換成1到6的尺度。或者性別從男、女轉換成0與1。可用<span style='color:red'>as.numeric()</span>函數：
+```{r echo=TRUE}
+gender<-as.numeric(Chile$sex) 
+table(Chile$sex); table(gender)
+```
+可以看到`R`按照類別的字母順序轉換類別為數字。
+如果進一步要轉換數字就容易了：
+
+```{r echo=TRUE}
+sex <- c()
+sex[gender==2]<-0
+sex[gender==1]<-1
+table(sex)
+```
+
+也可以寫語法直接轉換因素為需要的數字：
+```{r echo=T}
+ngender<-c()
+ngender[Chile$sex=='F']<-1
+ngender[Chile$sex=='M']<-0
+table(ngender)
+```
+
+或是把因素轉換為字串：
+```{r echo=T}
+Chile$gender[Chile$sex=="F"]<-"Female"
+Chile$gender[Chile$sex=="M"]<-"Male"
+class(Chile$gender)
+table(Chile$gender)
+```
+
+如果是字串，可以進行交叉分析，但是無法畫圖
+```markdown
+table(Chile$gender, Chile$vote)
+plot(Chile$gender, Chile$vote, xlab="Sex", ylab="Vote")
+```
+
+需要注意字串無法轉換為數字，因為`R`無法判斷哪一個字串應該被給予哪一個數字。
+```markdown
+as.numeric(Chile$gender)
+```
+請嘗試練習`AMSsurvey`的`citizen`等類別變數的轉換。
+如果要避免讀取資料時把字串認定為因素，可以加上一個設定<span style="color:blue">stringsAsFactors=FALSE</span>
+```{r echo=T}
+library(data.table)
+X = data.table(A=sample(3, 6, TRUE), 
+               B=sample(letters[1:3], 6, TRUE), 
+               C=sample(6), stringsAsFactors=FALSE)
+X
+```
+
+#### 因素的順序
+
+請輸入
+<span style="color:blue">x<-c("花蓮縣","臺北市","屏東縣","臺南市","高雄市");x;</span>
+<span style="color:blue">table(x)</span>
+
+x的排列方式為"花蓮縣","臺北市","屏東縣","臺南市","高雄市"，而分布的排列方式也是如此。  
+如果希望按照由北到南再到東排列觀察值，可以加上`level`指令
+<span style="color:blue">xf<-factor(x, levels=c("臺北市", "臺南市","高雄市","屏東縣","花蓮縣")); xf</span>  
+<span style="color:blue">table(xf)</span>  
+
+請練習把`Chile`裡面的`region`變數的類別重新排序，然後執行
+```markdown
+table(Chile$sex,Chile$regionorder)
+```
+
+附帶一提，`factor()`這個函數裡面有`ordered`的邏輯選項，不過只要指定`levels`，有無`ordered`為真並不影響。但是`ordered()`這個函數會得到一個已經排序的因素，例如：
+```{r echo=TRUE}
+od<-ordered(1:20); class(od)
+```
+
+
+## 邏輯(logic)
+
+資料可以是真(True)或是偽(False)的邏輯，對於篩選資料特別有用。例如我們先建立一筆資料以及邏輯：
+```{r echo=TRUE}
+a<-c(0:9); a
+ok<-a>5; ok
+```
+
+然後用這個邏輯篩選資料：
+
+```{r echo=TRUE}
+a[ok]
+```
+
+請嘗試
+
+```markdown
+head(Duncan)
+ok<-Duncan$income>50  
+Duncan$income[ok]
+```
+
+請問篩選後的變數剩下幾個觀察值？
+附帶介紹一個指令<span style="color:red">length()</span>，用途為顯示向量的長度。  
+有時候我們的資料裡面有遺漏值NA。可以用邏輯加上<span style="color:red">is.na()</span>函數，剔除這些遺漏值。
+```{r echo=TRUE}
+H<-data.table(Age=c("40-49","30-39","40-49","20-29","20-29","60-69","60-69","30-39","60-69","30-39"), Vote=c("Ding", NA, "Ko", "Ko", "Ko", NA, "Ko", "Yao","Ding","Ko"), Income=c(NA,NA, "900-1200K", "600-900K", NA, "2000-3000K", NA, "600-900K", "2000-3000K", "900-1200K")); H
+ok <- !is.na(H$Vote)
+table(H$Age[ok], H$Vote[ok])
+```
+請嘗試用以上的技巧顯示收入與投票之間的關係。
+
+```{r echo=FALSE}
+ok<-!is.na(H$Vote) & !is.na(H$Income)
+table(H$Income[ok], H$Vote[ok])
+```
+
+## 日期(date)
+
+請輸入
+<span style="color:red">Sys.Date()</span>  
+今天的日期是一個日期變數。
+`as.Date()`可以將字串轉變為日期資料
+```{r echo=TRUE}
+v<-c("2/27/2018", "6/26/2018", "12/31/2018"); class(v)
+v.date<-as.Date(v, format='%m/%d/%Y'); class(v.date)
+```
+
+或者是
+```{r echo=TRUE}
+v<-c("", "6/26/2018", "12/31/2018")
+as.Date(v, format='%m/%d/%Y')
+```
+
+<span style='colore:red'>format()</span>則轉換屬性為日期的資料為不同格式，例如：
+```{r echo=TRUE}
+today <- Sys.Date()
+format(today, format='%m/%d/%Y')
+```
+
+### 日期的差距
+請輸入
+
+```{r echo=T}
+xi<-"1953-06-15" #Xi's birthday
+tsai<-"1956-08-31" #Tsai's birthday
+```
+我們可以轉換字串為日期變數，然後計算兩個日期之間的差距：
+```{r echo=T}
+as.Date(c(xi,tsai), origin="1904-01-01")
+difftime(tsai, xi)
+```
+
+在這個例子中，`origin`指令可設定也可不設定。但是計算某一個數字代表的日期時必須要有起始日：
+```{r echo=T}
+as.Date(1100, origin="2018-08-01")
+```
+
+
+### 日期的格式
+
+日期的格式如下：
+
+|符號|意義|例子|
+|--------|----|----|
+|%d| 日|01-31 |
+|%a| 星期幾的縮寫|Mon |
+|%A| 星期幾| Monday|
+|%m| 月份（數字）|01-12 |
+|%b| 月份的縮寫| Jan |
+|%B| 月份的完整寫法|January |
+|%y| 兩位數年份| 18 |
+|%Y| 年份| 2018 |
+
+`format()`這個函數可以轉換已經是日期格式的資料。
+```{r echo=TRUE}
+Today<-Sys.Date(); Today
+to_day<-format(Today, format='%Y-%b-%d'); to_day
+```
+介紹完資料型態之後，接下來介紹資料結構。
+
+---
+
+# 資料結構
+## 一維
+### 向量(vector)  
+
+向量是最常見的資料結構，可以寫成：
+```{r echo=TRUE}
+example<-c(0,1,2,3,4)
+print(example)
+```
+或者是
+
+```{r echo=TRUE}
+c(2,4,6,8)->A
+```
+英文字母的向量：
+```{r echo=TRUE}
+c(letters)
+c(LETTERS)
+```
+
+有時候我們為向量中的元素加上名稱，方便繪圖，例如有兩個向量分別表示某位投資者的資金配置以及2016到2019的現金數量：
+```{r echo=TRUE}
+shares <- c(150, 40,  65)
+names(shares) <- c('Finance','Techonolgy','Cash')
+shares
+class(shares)
+cash<-c(100, 120, 80, 65)
+names(cash) <- c(2016, 2017, 2018, 2019)
+par(mfrow=c(1,2), bg='lightgreen',mai=c(0.4,0.3,0.1,0.3))
+pie(shares); barplot(cash, cex.axis = 0.8)
+```
+
+可以在向量內進行數學運算，例如：
+```{r echo=TRUE}
+j<-c(2*2, 2*9, 10-2, 3^3); j
+```
+
+向量可以加、減、乘、除其他數字：
+```{r echo=TRUE}
+R<-c(100, 200, 300); R/5; sqrt(R)
+```
+
+一個向量可以合併另一個向量：
+```{r echo=T}
+c(j, R)
+```
+
+或者是一個向量包含其他向量：
+```{r echo=T}
+Y<-c(j, c(9:5), R[c(1,2)]); Y
+```
+因為`R`的向量可以連結，我們可以增加資料的數量。
+用減號可以去除向量中的元素，例如：
+```{r echo=T}
+Y[-c(8:12)]
+```
+## 二維
+### 矩陣 (matrix)
+`R`的資料結構之一是矩陣，例如：
+
+```{r echo=T}
+data("VADeaths"); VADeaths
+class(VADeaths)
+```
+
+數學的矩陣與`R`的矩陣類似。矩陣的讀法是先列再行。例如我們需要一個$3\times 3$的矩陣可寫成：
+```{r echo=TRUE}
+m<-matrix(c(1:9), nrow=3, ncol=3); m
+```
+再寫一個$3\times 2$
+```{r echo=TRUE}
+n<-matrix(c(1:6), nrow=3, ncol=2)
+```
+兩個矩陣相乘可寫成：
+```{r echo=TRUE}
+m<-matrix(c(1:9), nrow=3, ncol=3); n<-matrix(c(1:6), nrow=3, ncol=2); m%*%n
+```
+矩陣的乘法需要第一個矩陣的行(column)等於第二個矩陣的列(row)。  
+矩陣的對角向量為：
+```{r echo=T}
+diag(m)
+```
+
+轉置矩陣為：
+```{r echo=T}
+t(m)
+```
+
+如果要替代或者是選取部分的矩陣資料，例如要選取m矩陣的第二列第三行的資料，並且命它為0：
+```{r echo=T}
+m[2,3]; m[2,3]<-0
+```
+
+請嘗試(1)轉置n矩陣(2)輸入以下指令：<span style="color:blue">n<-matrix(c(1:6), nrow=3, ncol=2, byrow=T)</span>  
+
+矩陣的列與行命名方式為用`dimnames`的指令分別對列與行指定名稱，例如：
+```{r echo=TRUE}
+n<-matrix(c(1:6), nrow=3, ncol=2, dimnames = list(c("a","b","c"),c("A","B"))); n
+```
+
+### 資料框 (data frame)
+資料框是向量組合起來成為一個類似矩陣的資料，然後指定變數名稱。例如：
+```{r echo=TRUE}
+R1<-c(170, 175, 166, 172, 165, 157, 167, 167, 
+        156, 160)
+R2<-c("F","M","M","M","F","F","F","F","M","F")
+R3<-R1/10 + 42
+R123<-data.frame(height=R1,gender=R2,weight=R3, 
+                 stringsAsFactors = FALSE)
+R123
+```
+資料框的每一行必須有相同的長度，每一列也必須要有同樣數目的數字、文字等。
+如果沒有特別指定資料框，`R`會當做矩陣。例如：
+```{r echo=T}
+H<-cbind(LETTERS[1:6], seq(10,60, 10))
+class(H)
+```
+因為矩陣無法設定stringAsFactor=F，所以資料框比較好用。
+
+有幾個資料框與矩陣的相關指令：  
+
+ -  nrow(x)：顯示x資料框或矩陣的列數量，也等於是觀察值數目
+ -  ncol(x)：顯示x資料框或矩陣的行數量，也等於是變數數目  
+ -  dim(x)：同時顯示x資料框或矩陣的行列的數量
+ -  str(x)：顯示x資料框或矩陣的性質以及變數名稱與性質
+ -  head(x)：顯示x資料框或矩陣的前6列
+ -  head(x, n=a)：顯示x資料框或矩陣的前a列
+ -  colnames(x)：顯示或設定x資料框或矩陣的變數或欄位名稱
+ -  rownames(x)：顯示或設定x資料框或矩陣每一列的名稱  
+ 
+例如我們想知道AMSsurvey有幾個觀察值：
+```{r echo=TRUE}
+nrow(AMSsurvey)
+```
+如果想要改變欄位名稱，可以這麼做：
+
+```{r echo=T}
+colnames(R123)<-c("v1","v2","v3"); R123
+```
+
+有的資料框的最左邊是流水號，有的資料框沒有，前者可能是因為從csv等工作表讀取而來，被賦予流水號，但是並不是第一行，真正的第一行應該有欄位的名稱。有的資料框則用字串當做列的名稱：
+
+```{r echo=T}
+library(ISLR)
+head(College, n=3)
+```
+
+rownames 可以幫助我們刪掉不需要的資料。例如我們有一筆美國各州的資料：
+```{r echo=T}
+head(state.x77, n=5)
+```
+我們想刪掉Alabama, Alaska, Arkansas三個州的資料，先成立一個矩陣：
+```{r echo=T}
+names.to.delete<-c('Alabama', 'Alaska', 'Arkansas')
+```
+再用<span style="color:red">which(rownames(data) %in% vector)</span>傳回所要選出的列：
+```{r echo=T}
+rows.to.delete<-which(rownames(state.x77) %in% names.to.delete) 
+```
+最後用<span style="color:blue">data[-c(), ]</span>刪掉所選的列：
+```{r echo=T}
+newstate <- state.x77[-c(rows.to.delete),]
+head(newstate, n=5)
+```
+
+更進一步的篩選資料方法將會在後面課程介紹。
+
+---
+
+## 多維
+### 陣列 (array)
+陣列容納一個以上的矩陣，只有一個矩陣的陣列相當於矩陣：
+```{r echo=TRUE}
+Array1 <- array(1:12, dim = c(2, 6, 1)); Array1
+```
+而有多個矩陣的陣列如：
+```{r echo=TRUE}
+Array2 <- array(1:12, dim = c(2, 3, 2)); Array2
+```
+陣列的優點是同時容納一個以上的矩陣，如果只需要某一個矩陣，可以這樣取出：
+```{r echo=TRUE}
+A12<-Array2[,,2]; A12
+```
+
+### 列表 (list)  
+列表的特性為資料的長度、結構沒有限制，例如：
+```{r echo=T}
+listA<-list(R123, H, c(xi,tsai)); listA
+```
+
+又例如我們在一個列表中，創造兩個資料框並給定名稱：
+```{r echo=T}
+list(A=data.frame(x=c(1:5),y=c(101:105)), 
+     B=data.frame(v1=rep(NA,6)))
+```
+
+如果要取出列表中的某一個部分資料，可以寫成：
+
+```{r echo=T}
+listA[[3]]
+```
+
+列表的優點是儲存尚未格式化的資料，但是資料相當龐大，矩陣與陣列的資料分散為一個個元素，不容易取出，如果事先命名，就比較容易了解哪些元素來自於什麼資料。例如：
+```{r echo=TRUE}
+listB<-list(data=R123, vec=m, char=c(tsai, xi)); 
+listB[["data"]]
+
+```
+
+如果列表中的變數有同樣的長度，可以用<span style='color:red'>setDT()</span>轉換列表為data.table
+```{r echo=TRUE}
+X = list(1:5, letters[1:5], c('Y','Y','N','Y','N'), c("2/27/2018", "6/26/2018", "12/31/2018","1/20/2019","4/8/2019")); X
+X.dt<-setDT(X); X.dt
+```
+
+```markdown
+請嘗試把`c('a','b','c')`、`c(1,2,3,4)`以及`c('2018-01-01', '2018-04-04', '2018-04-05', '2018-06-18', '2018-10-10')`結合成為一個列表。  
+```
+### 表格 (table)
+Titanic這筆資料為表格的型態，同時也是四個陣列，
+```{r echo=TRUE}
+class(Titanic); Titanic
+```
+
+```{r echo=T}
+Titanic[, , 1, 1]; Titanic[ , , 2, 2]
+```
+
+## 小結
+資料框在各種資料結構之中，是最常被用到的。如果要把資料提出，最好把各種資料結構轉成資料框。例如：
+```{r echo=T}
+g<-Titanic[ , , 2, 2]; class(g)
+
+```
+請輸入 
+
+<span style="color:blue">g\$Class</span>   
+
+會發生錯誤。改為：
+```{r echo=T}
+g<-data.frame(g)
+```
+請輸入 
+<span style="color:blue">g\$Class</span>   
+
+# 基本運算
+## 向量的運算
+因為向量具有方位的性質，所以數字具有先後順序，與另一個有同樣數目的向量相加減乘除時，將會依照順序進行運算。我們以一個純量 (scalar) Sca 為例：
+```{r echo=T}
+X<-c(10,20,30,40,50,60); Sca<-10
+X+Sca
+```
+如果是乘或是除，就是每個元素同時乘或除某個數：  
+```{r echo=T}
+X/Sca
+```
+
+如果是乘或是除另一個矩陣向量，就是兩個向量對應的每個元素進行乘或除：
+```{r echo=T}
+Y<-c(5,10,6,8,25,6)
+X/Y; X*Y
+```
+
+也可以運算平方與開根號：
+```{r echo=TRUE}
+a<-c(2,3,4); b<-a^2; print(b)
+c<-sqrt(b); print(c)
+```
+
+## 進位
+進位的指令有：
+
+- `round`：四捨五入
+- `floor`：強制捨去
+- `ceiling`：強制進位
+
+```{r echo=TRUE}
+a1<-c(2.54, 3.111, 10.999)
+round(a1, digits=2)
+floor(a1)
+ceiling(a1)
+```
+
+---
+
+# 作業
+
+1. 請問 $\text{log}(\frac{14}{5})=$?  
+2. 請問 $1\times 2\times 3\times , \dots ,\times 8=$?
+3. 使用`orange`資料，把Tree變數換成A, B, C, D, E，然後顯示每一個類型的數量。  
+4. 請用`weekdays()`指令顯示今天上課日期是星期二。
+```{r include=FALSE}
+TODAY<-as.Date('2018-03-03', format='%Y-%m-%d')
+weekdays(TODAY)
+```
+5. 請問在`mtcars`資料裡面，mpg高於或等於21的資料有幾筆？
+```{r include=FALSE}
+library(car)
+mtcars$Mpg<-mtcars$mpg
+ok<-mtcars$Mpg>=21
+mtcars$Mpg[ok==T]<-'hi'
+mtcars$Mpg[ok==F]<-'lo'
+table(mtcars$Mpg)
+```
+6. 請嘗試取出`Titanic`這個列表的四個表格
+```{r include=FALSE}
+Titanic[,,1,1]
+Titanic[,,1,2]
+Titanic[,,2,1]
+Titanic[,,2,2]
+```
+7. 請計算英文有幾個字母。
+```{r include=FALSE}
+n<-length(c(LETTERS)); n
+```
+8. 請寫一段語法把今天的氣溫轉換成華氏
+```{r include=FALSE}
+a<-28
+F.a<-a*(9/5)+32; F.a
+```
+9. 請創造一個對角向量為{1,1,1}的矩陣
+```{r include=FALSE}
+a<-matrix(c(1:9), nrow=3, ncol=3)
+diag(a)<-c(1,1,1); a
+```
+10. 請問在您寫作業的這一天，今年已經過了幾天？
+```{r include=FALSE}
+a<-Sys.Date(); b<-as.Date("2018-01-01")
+difftime(a, b, units=c("days"))
+```
