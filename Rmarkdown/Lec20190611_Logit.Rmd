@@ -1,0 +1,1137 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>二元變數迴歸模型(v2.1)</h1>
+author: "蔡佳泓"
+job: <h1><u>東亞所<u></h1>
+date: '6/11/2019'
+output: 
+  html_document: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    fig_caption: true
+    #pandoc_args: ["-F","pandoc-crossref"]
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  
+---
+<style>
+body {
+    background-color: #EEE8AA;
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+    line-height: 1.8;
+}
+
+div >  p {
+    font-size: 22px;
+    text-indent: 24px;
+    font-style: BiauKai;
+    color:#171717; padding:10px;
+    font-family: Times, "王漢宗細圓體繁", "新細明體","文泉驛正黑", sans-serif;
+  }
+h2 {
+   font-size: 30px;
+  color: #800000; padding:10px;;
+    line-height: 2;
+   
+}  
+p1 {
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+  }
+p2 {
+    font-size: 20px;
+    color: blue;
+    font-family: "儷黑 Pro";
+    font-family:  Times, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "BiauKai", "微軟正黑體", "Microsoft JhengHei", sans-serif; 
+  }
+</style>
+
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(dplyr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+options(knitr.table.format = "html")
+```
+
+# 課程目標
+
+線性迴歸適用於依變數是連續變數，自變數可以是連續或者類別變數。以最小平方法計算樣本的迴歸係數，推論母體的迴歸係數。
+社會科學的研究對象經常是類別變數，例如有去投票跟沒去投票，民主與非民主國家，有接受外援與沒有接受等等。
+本週上課將介紹二元變數迴歸的基本原理，描述自變數與二元變數之間的關係。例如信用卡是否違約與信用卡未償金額的關係。並且介紹如何用`R`運算最大概似法函數。
+
+
+# 二元迴歸的基本原理
+
+<li> 假設每一個$Y$代表從參數為$P_{j}$抽樣得到的伯努利實驗變數，$Y_{j}=\sum^{N_{j}} Y_{ij}$，也就是在$j$的群體中，累積$Y=1$的次數$N_{j}$等於$Y_{j}$。</li>
+<li>什麼是伯努利實驗？定義為只有兩種結果的單次實驗。例如：擲出硬幣得到正面或者反面？參加考試是否及格？明天是否會下雨？從網路抽出100張照片，其中有寵物的比例？隨機變數的期望值$E[Y]=p$，標準差為$\sqrt{p(1-p)}。$如果重複類似實驗$k$次，則稱為二項分布。</li>
+<li>而從機器學習的觀點，如何根據訓練資料找到$f(X)$，未來可以預測行為是贊成或反對、結果是成功或是失敗，是估計二元迴歸模型的目的。</li>
+<li>累積$Y=1$的次數$N_{j}$等於$Y_{j}$的模型表示為：</li>
+\[
+\begin{eqnarray}
+ \frac{Y_{j}}{N_{j}} & = & f_{j}\\
+ & = &\sum \beta_{k}X_{ik}+u_{i}
+\end{eqnarray}
+\]
+<li> 假設$j$代表投給國民黨或是民進黨。如果有兩個以上類別，例如$j=3$。我們需要估計$j-1$個方程式。</li>
+<li> 以上的方程式$\frac{Y_{j}}{N_{j}}$等於機率$p$，並且已知$0\leq p\leq 1$。根據最小平方法得到的$\hat{Y}$有可能大於1或是小於0，也就是預測值超出觀察值$p$的範圍。 </li>
+<li>此外，$X$, $Y$之間可能不是線性關係；當$X$變動一單位，$Y$變動的單位可能因為$X$在不相同的值而不相等。 因此，$p$必須經過轉換，才不會出現超出上下限的預測值，也才會有線性關係。</li>
+
+## 實例
+$\blacksquare$ 什麼樣的人會無法償還信用卡的債務？
+
+```{r, eval=FALSE}
+library(ISLR); library(stargazer)
+Default$default.n <- as.numeric(Default$default)
+Default$default.n <- Default$default.n-1 #No=0, Yes=1
+M1 <- lm(default.n ~ balance, data=Default)
+Default$predicted<-predict(M1)
+stargazer (Default, type='html')
+```
+
+<li>根據上面的估計結果，可得出以下的表格，其中$\hat{y}_{i}$的極小值小於0。</li>
+
+<table style="text-align:center"><tr><td colspan="6" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Statistic</td><td>N</td><td>Mean</td><td>St. Dev.</td><td>Min</td><td>Max</td></tr>
+<tr><td colspan="6" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>10,000</td><td>835.375</td><td>483.715</td><td>0.000</td><td>2,654.323</td></tr>
+<tr><td style="text-align:left">income</td><td>10,000</td><td>33,516.980</td><td>13,336.640</td><td>771.968</td><td>73,554.230</td></tr>
+<tr><td style="text-align:left">default.n</td><td>10,000</td><td>0.033</td><td>0.179</td><td>0</td><td>1</td></tr>
+<tr><td style="text-align:left">predicted</td><td>10,000</td><td>0.033</td><td>0.063</td><td>-0.075</td><td>0.270</td></tr>
+<tr><td colspan="6" style="border-bottom: 1px solid black"></td></tr></table>
+
+
+
+<li>左邊的圖表示部分的$\hat{y}_{i}$小於0，右邊的圖表示經過轉換，$\hat{y}{i}$介於0與1之間。</li>
+![](balance.png){width=400px, height=500px}
+
+
+<li>此外，用最小平方法（OLS）估計二元的依變數，其模型誤差$\epsilon$的變異數會隨著自變數的值而改變，也就不是固定不動，造成係數的標準誤不是最穩定。</li>
+<li>最後，OLS模型如果估計二元的依變數，其誤差不是呈現常態分佈，違反迴歸假設，檢定的結果可能有誤。</li>
+<li>基於以上幾點，我們不使用線性迴歸模型估計自變數與二元變數的關係，改採用Logit或是Probit模型。</li>
+
+## 連結函數：依變數的轉換
+<li>對數log或ln幫助我們轉換機率的依變數。</li>
+<h2>對數具有以下特性：</h2>
+\[\mathrm{log}1=0\]
+\[\mathrm{log}_{a}a=1\]
+\[\mathrm{log}(a)+\mathrm{log}(b)=\mathrm{log}(a*b)\]
+\[\mathrm{log}(a)-\mathrm{log}(b)=\mathrm{log}(a/b)\]
+\[\mathrm{log}(a) =\infty\hspace{.1cm} \rm{if}\hspace{.1cm} a\approx \infty\]
+\[\mathrm{log}0=-\mathrm{Inf}\]
+\[\mathrm{log}a^k=k*\mathrm{log}a\]
+\[\rm{exp}^{log(a)} = a\]
+\[\mathrm{log}(\rm{exp}(a))=a\]
+
+我們實際計算看看：
+```{r}
+a=10; b=5; k=3
+log10(a)
+log(a)+log(b); log(a*b)
+log(a)-log(b); log(a/b)
+log(a^k); k*log(a)
+exp(log(a))
+log(exp(b))
+```
+
+<li>我們也會使用指數exponential來轉換對數的函數。指數有以下特性：</li>
+\[\rm{exp}^{0}=1\]
+\[\rm{exp}^{1}=2.718282\]
+\[\rm{exp}^{a-b}=\frac{\rm{exp}^{a}}{\rm{exp}^{b}} \]
+\[\rm{exp}^{a+b}=\rm{exp}^{a}\rm{exp}^{b} \]
+
+
+指數運算的例子：
+```{r}
+a=10; b=1
+exp(0)
+exp(a-b); exp(a)/exp(b)
+exp(a+b); exp(a)*exp(b)
+log(exp(1))
+```
+
+
+<li>假設$Y'=\mathrm{log}(Y)$，$\mathrm{log}(Y)\equiv Y'\equiv \sum X\beta^{*}+\epsilon$ </li>
+<li> 當$X$變動一個單位，$Y$變動 $exp^{\beta}$單位，約等於$\mathrm{\beta}\%$</li>
+<li> 此處$\mathrm{log}(Y)$稱為Link Function，寫成$F(\cdot)=F(Y)=Y'=\mathrm{log}(Y) = X\beta+\epsilon$</li>
+
+# Logit 模型的基本原理
+<li> logistic function:</li>
+\[
+\begin{eqnarray}
+\text{logit}(Y=1|X) & = & \text{log} \frac{P_{i}}{1-P_{i}}\\
+& = & \frac{p(X)}{1-p(X)}\\
+&=&\beta_{0}+X\beta_{1} 
+\end{eqnarray}
+\]
+因為$\text{exp}(\text{log}(a))=a$，所以
+\[
+\frac{p(X)}{1-p(X)} = exp^{\eta}
+\]
+也可以寫成（為什麼？）：
+\[p(X)=\frac{e^\eta}{1+e^\eta}\]
+其中，
+\[ \eta \equiv \sum \beta_{k}X_{ik}\]
+<li> 為何要用logit做為一個連結函數，這是因為logit是一個勝算比的型態，它會產生$\{-\infty, \infty \}$的對應值，不受到$0\le p\le 1$的限制。 </li>
+<li>何謂勝算？可表示成$\frac{p(x)}{1-p(x)}$。例如：</li>
+
+$\blacksquare$ $20\%$的打擊率，表示打出安打跟無法上壘的勝算為1:4，因為$\frac{0.2}{1-0.2}=\frac{1}{4}$，或者說無法上壘的機率是打安打的4倍。      
+$\blacksquare$ $90\%$的合格率，表示合格是不合格機率的9倍，因為$\frac{0.9}{1-0.9}=9$。
+
+# 最大概似法(MLE)原理
+
+<li> 最大概似法(Maximum Likelihood Estimation, MLE)的原理是對每一組$(x_{i}, y_{i})$，嘗試Pr($y_{i}=1$)=$\Phi(\text{X}\beta)$之中的$\beta$值，最大化出現Pr($y_{i}=1$)的機率。</li>
+<li>參考[StatQuest](https://www.youtube.com/watch?v=Dn6b9fCIUpM) </li>
+<li>MLE也可以想成找到最佳的方法逼近資料的分佈，例如常態分佈、指數分佈、Gamma分布等等，讓同樣分佈的資料可以重複驗證。</li>
+<li> 例如我們嘗試$\beta$值得到Pr($y_{i}=1$)=0.8，而且實際上$y_{i}=1$，我們可以說得到的概似機率為0.8。如果實際上$y_{i}=0$，我們可以說得到的概似機率為0.2。</li>
+<li>例如有一筆資料分佈如圖。假設他們成常態分佈。首先我們嘗試以下的分佈：</li>
+```{r}
+curve(dnorm(x, 0.35, 0.1), from=-1.5, to=1, col='#3322EE', lwd=2)
+curve(dnorm(x, -0.8, 0.2), from=-1.5, to=1, col='#FF22EE', lwd=2, add=T)
+x<-c(-1, -0.85, -0.6,-0.50, -0.45, -0.30, -0.25, -0.20, -0.15, -0.09,  0.00,  0.10,  0.16,  0.30,  0.50)
+y<-rep(0, 15)
+points(x,y, pch=16, cex=2, col='gray30')
+```
+
+<li>顯然這兩個分佈的中心點與離散程度與實際資料有點差距。離資料的中心點以及離散程度越遠，表示概似程度(likelihood)越小。</li>
+<li>所以當我們說資料的MLE估計時，表示我們極大化觀察到的資料接近特定分布的程度。</li>
+```{r}
+curve(dnorm(x, -0.22, 0.38), from=-1.5, to=1, col='#FF3333', lwd=2, xlab='y')
+y<-c(-1, -0.85, -0.6,-0.50, -0.45, -0.30, -0.25, -0.20, -0.15, -0.09,  0.00,  0.10,  0.16,  0.30,  0.50)
+y2<-rep(0, 15)
+points(y, y2, pch=16, cex=2, col='gray30')
+abline(v=-0.22, lty=2, lwd=1.5, add=T)
+```
+
+## 最大概似法求解
+
+### 常態分佈
+
+<li>常態分佈的機率密度函數如下：</li>
+\[\rm{Pr}(y| \mu, \sigma)=\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y-\mu)^2/2\sigma^2}\]
+<li>常態分佈的最大概似函數如下：</li>
+\begin{equation*}
+\mathcal{L}(\mu, \sigma|y_{i}) = \frac{1}{\sqrt{2\pi\sigma^2}}e^{-(y-\mu)^2/2\sigma^2}
+\end{equation*}
+<li>在既定的$\sigma$以及$y$，我們不斷地嘗試各種$\mu$，以極大化概似機率。這些$\mu$對應的最大概似機率將成為一個常態分佈。當機率極大化時，常態分佈曲線也達到最高，斜率等於0，對應的$\mu$，理論上等於資料的平均數。</li>
+<li>假設只有一個觀察值20。假設$\sigma=2$，代入300個$\hat{\mu}$求出最大化函數的值，並畫成圖：</li>
+```{r}
+y<-20; sigma=2; mu<-seq(10, 30, length.out = 300)
+L <- c()
+n=length(mu)
+for (i in 1: n){
+  L[i] <- 1/(sqrt(2*pi*sigma^2))*exp(-((y-mu[i])^2)/2*sigma^2) 
+}
+plot(mu, L, type='l', lwd=2, col='#FF3322', xlab=expression(hat(mu)))
+abline(h=max(L), lty=2, lwd=2, col='#998833')
+```
+
+<li>在求出$\mu$之後，再根據$\mu$以及$y$，我們不斷地嘗試各種$\hat{\sigma}$，以極大化概似機率。這些$\hat{\sigma}$對應的分佈當機率極大化時，曲線也達到最高，斜率等於0。</li>
+
+
+<li>如果有$n$個$y$，那麼概似機率需要連乘：</li>
+\[\mathcal{L}(\mu, \sigma|y_{1},\ldots,y_{n})=\mathcal{L}(\mu, \sigma|y_{1})\times\ldots,\times\mathcal{L}(\mu, \sigma|y_{n})\]
+<li>對兩邊取log，再對$\mu$以及$\sigma$取微分，</li>
+
+\[
+\begin{eqnarray}
+\rm{ln}[\mathcal{L}(\mu, \sigma|y_{1},\ldots,y_{n})]&=&\rm{ln}\mathcal{(}\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{1}-\mu)^2/2\sigma^2}\times\ldots\times\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{2}-\mu)^2/2\sigma^2}\mathcal{)}\\
+& =&\rm{ln}\mathcal{(}\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{1}-\mu)^2/2\sigma^2}\mathcal{)}+\ldots+\rm{ln}\mathcal{(}\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{n}-\mu)^2/2\sigma^2}\mathcal{)}
+\label{eq:LL}
+\tag{1}
+\end{eqnarray}
+\]
+
+其中
+
+\[
+\begin{eqnarray}
+\rm{ln}\mathcal{(}\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{1}-\mu)^2/2\sigma^2}\mathcal{)}&=&\rm{ln}(\frac{1}{\sqrt{2 \pi\sigma^2}})+\rm{ln}(e^{-(y_{1}-\mu)^2/2\sigma^2}) \\
+& = & \rm{ln}[(2\pi\sigma^2)^{-1/2}]-\frac{(y_{1}-\mu)^2}{2\sigma^2}\rm{ln}(e) \\
+& =& -\frac{1}{2}\rm{ln}[(2\pi\sigma^2)-\frac{(y_{1}-\mu)^2}{2\sigma^2} \\
+& = &-\frac{1}{2}\rm{ln}(2\pi)-\frac{1}{2}\rm{ln}(\sigma^2)-\frac{(y_{1}-\mu)^2}{2\sigma^2} \\
+&=&-\frac{1}{2}\rm{ln}(2\pi)-\rm{ln}(\sigma)-\frac{(y_{1}-\mu)^2}{2\sigma^2} 
+\label{eq:likelihood1}
+\tag{2}
+\end{eqnarray}
+\]
+<li>回想：$\rm{log}(a^k)=k*log(a)$以及$\rm{log(e)=1}$</li>
+<li>計算$n$個$\rm{ln}\mathcal{(}\frac{1}{\sqrt{2 \pi\sigma^2}}e^{-(y_{i}-\mu)^2/2\sigma^2}\mathcal{)}$的總和，方程式$\eqref{eq:LL}$變成：</li>
+
+\[
+\begin{eqnarray}
+\rm{ln}[\mathcal{L}(\mu, \sigma|y_{1},\ldots,y_{n})]&=&-\frac{n}{2}\rm{ln}(2\pi)-\it{n}\rm{ln}(\sigma)-\frac{(y_{1}-\mu)^2}{2\sigma^2}-\ldots-\frac{(y_{n}-\mu)^2}{2\sigma^2}
+\label{eq:likelihood2}
+\tag{3}
+\end{eqnarray}
+\]
+
+<li>對方程式$\eqref{eq:likelihood2}$的$\mu$求微分，獲得$\mu$的取log對數的最大概似機率函數的頂點：</li>
+\[
+\begin{eqnarray}
+\frac{\partial}{\partial\mu}\rm{ln}[\mathcal{L}(\mu,\sigma|y_{1},\ldots,y_{n})]&=& 0-0+\frac{(y_{1}-\mu)}{\sigma^2}+\ldots+\frac{(y_{n}-\mu)}{\sigma^2} \\
+&=&\frac{1}{\sigma^2}[(y_{1}+\ldots+y_{n})-n\mu]
+\label{eq:mu_derivative}
+\tag{4}
+\end{eqnarray}
+\]
+<li>上面的過程使用到The Chain Rule使$(y_{1}-\mu)^2$微分為$2(y_{1}-\mu)$</li>
+<li>對上一個方程式的$\sigma$求微分，獲得$\sigma$取log對數的最大概似機率函數的頂點：</li>
+\[
+\begin{eqnarray}
+\frac{\partial}{\partial\sigma}\rm{ln}[\mathcal{L}(\mu,\sigma|y_{1},\ldots,y_{n})]&=& 0-\frac{n}{\sigma}+\frac{(y_{1}-\mu)}{\sigma^3}+\ldots+\frac{(y_{n}-\mu)}{\sigma^3} 
+\label{eq:sigma_derivative}
+\tag{5}
+\end{eqnarray}
+\]
+<li>接下來我們計算當方程式$\eqref{eq:mu_derivative}$等於0時的$\mu$</li>
+\[
+\begin{eqnarray}
+0&=&\frac{1}{\sigma^2}[(y_{1}+\ldots+y_{n})-n\mu] \\
+&= & [(y_{1}+\ldots+y_{n})-n\mu]
+\end{eqnarray}
+\label{eq:mu_derivative2}
+\tag{6}
+\]
+<li>方程式$\eqref{eq:mu_derivative2}$顯示，當$\mu=\frac{\sum_{i}^{n}y_{i}}{n}$時，也就是樣本平均值時，極大化最大概似函數。</li>
+<li>接下來我們計算當方程式$\eqref{eq:sigma_derivative}$等於0時的$\sigma$</li>
+\[
+\begin{eqnarray}
+0&=& -\frac{n}{\sigma}+\frac{(y_{1}-\mu)^2}{\sigma^3}+\ldots+\frac{(y_{n}-\mu)^2}{\sigma^3}  \\
+&= & -n+\frac{(y_{1}-\mu)^2}{\sigma^2}+\ldots+\frac{(y_{n}-\mu)^2}{\sigma^2} \\
+&= & -n+\frac{1}{\sigma^2}[(y_{1}-\mu)^2+\ldots+(y_{n}-\mu)^2] \\
+n&=& \frac{1}{\sigma^2}[(y_{1}-\mu)^2+\ldots+(y_{n}-\mu)^2] \\
+n\sigma^2& = & (y_{1}-\mu)^2+\ldots+(y_{n}-\mu)^2 \\
+\sigma^2& = & \frac{\sum_{1}^{n} (y_{i}-\mu)^2}{n}
+\end{eqnarray}
+\label{eq:sigma_derivative2}
+\tag{7}
+\]
+
+<li>方程式$\eqref{eq:sigma_derivative2}$顯示，當$\sigma$等於樣本標準差時，極大化最大概似函數。</li>
+<li>參考[Daniel Linares](http://dlinares.org/mleNormal.html)畫圖表示對14個觀察值的資料，嘗試10個$\sigma$以及10個$\mu$極大化函數。</li>
+
+```{r}
+library(data.table); library(ggplot2)
+set.seed(5000)
+obs<-c(6, 5, 10, 3, 1, 8, 2, 9, 0, 2.5, 3.5, 4.2, 4.5, 4.9)
+logL<-function(p) sum(log(dnorm(obs,p[1],p[2]))) # p=c(p[1],p[2])=c(mu,sigma)
+library('plyr')
+dLogL<-expand.grid(museq=seq(4,8, 0.1),sigmaseq=seq(2,4,0.1))
+dLogL<-ddply(dLogL,.(museq, sigmaseq),
+             transform,logLike=logL(c(museq,sigmaseq)))
+DT<-data.frame(dLogL)
+
+is.na(DT) <- sapply(DT, is.infinite)
+
+for (j in 1:ncol(DT)) set(DT, which(is.infinite(DT[[j]])), j, NA)
+
+min_value<-min(DT$logLike)
+max_value<-max(DT$logLike)
+
+
+DT[which(DT$logLike==max_value),]
+
+#Graph
+ggplot(data=dLogL, aes(x=museq,y=logLike,
+                      color=factor(sigmaseq)))+
+             geom_line()
+
+dt <- DT %>% group_by(sigmaseq) 
+#mean(obs) =4.5
+#fix mu=4.5
+dt <- dt %>% filter(museq==4.5)
+
+ggplot(data=dt, aes(x=sigmaseq, y=logLike))+
+  geom_line(col='#339999', size=1)    +
+  geom_hline(aes(yintercept=max(logLike, na.rm=T)),   
+               color="red", linetype="dashed", size=1) +
+  labs(x=expression(hat(sigma)),y='Log Likelihood')  +
+   scale_x_continuous(labels=seq(2,4, by=0.1),
+                    breaks=seq(2,4, by=0.1))
+
+#Negative log-likelihood
+negLogL<-function(p) -logL(p)
+estPar<-optim(c(20,10),negLogL) 
+MLEparameters<-estPar$par
+MLEparameters
+```
+
+<li>不過，$\sigma^2$的期待值$E(\sigma^2)=\sigma^2-\frac{1}{n}\sigma^2$（參考[Daijiang Li](https://daijiang.name/en/2014/10/08/mle-normal-distribution/)）。如果$n\rightarrow \infty$，$E(\sigma^2)=\sigma^2$</li>
+
+## 二元變數的最大概似法
+<li>接下來說明二元變數的最大概似法。我們用$\mathcal{L}(y_{i}|\pi)$代表有$\pi$參數的條件下的$y_{i}$的概似機率。連乘所有的機率$\mathcal{L}(y_{1})\mathcal{L}(y_{2})\cdot\ldots\cdot\mathcal{L}(y_{n})=\prod_{i=1}^n\mathcal{L}(y_{i})$ </li>
+
+\begin{equation*}
+\mathcal{L}(y_{i}) =\begin{cases}
+\pi & \text{if}\hspace{.15cm} y_{i}=1 \\
+1-\pi & \text{if} \hspace{.15cm} y_{i}=0
+\end{cases}
+\end{equation*}
+
+\[
+\begin{eqnarray}
+\text{max}\sum_{i=1}^{n}[\text{log}\mathcal{L}(y_{i}|\hat{\pi})]&=&\sum \text{log}[\hat{\pi}^{y_{i}}(1-\hat{\pi})^{1-y_{i}}] \nonumber \\
+  & = & \sum y_{i}\text{log}(\hat{\pi})+(1-y_{i})\text{log}(1-\hat{\pi})
+\end{eqnarray}
+\]
+<li> 對方程式\hspace{.5em}\textcolor{white}{\ref{eq:max}}\hspace{.5em}的$\hat{\pi}$取微分，並且設為0求出$\hat{\pi}$ </li>
+\[\hat{\pi}=\frac{\sum_{i=1}^n y_{i}}{n} \]
+
+
+<li> 概似機率的估計式的抽樣分佈會接近常態分佈，N(0, H)，其中H代表Hessian matrix （海森矩陣）</li>
+<li> $\hat{\pi}=\frac{\sum_{i=1}^n y_{i}}{n}$表示樣本平均數可以最大化概似函數。</li>
+<li>以10個伯努利變數值為例，最大化概似函數之後畫圖，約在$p=0.696$時達到最高點，而這10個變數值的平均值等於0.7。</li>
+```{r}
+#http://www.johnmyleswhite.com/notebook/2010/04/21/doing-maximum-likelihood-estimation-by-hand-in-r/
+set.seed(1000)
+p.parameter <- 0.6
+sequence <- rbinom(10, 1, p.parameter)
+
+log.likelihood.sum <- function(sequence, p) {
+  log.likelihood <- sum(log(p)*(sequence==1)) +  sum(log(1-p)*(sequence==0))
+}
+
+possible.p <-seq(0,1, length.out=100)
+#jpeg('Likelihood_Concavity.jpg')
+library('ggplot2')
+g1<-qplot(possible.p,
+      sapply(possible.p, function (p) {log.likelihood.sum(sequence, p)}),
+      geom = 'line',
+      main = 'Likelihood as a Function of p',
+      xlab = 'p',
+      ylab = 'Likelihood')
+g1 + scale_x_continuous(labels=seq(0,1, by=0.1),
+                        breaks=seq(0,1, by=0.1))
+#dev.off()
+dt<-data.frame(p=possible.p,
+      value=sapply(possible.p, function (p) {log.likelihood.sum(sequence, p)}))
+dt<-dt[-c(1,100),]
+m.value=max(dt$value)
+dt[which(dt$value==m.value),]
+```
+
+## 伯努利分佈變數的MLE
+<li>用信用卡是否違約為例，說明`R`的optimize函數應用在二元變數的方式。首先寫下log函數。</li>
+```{r}
+def <- as.numeric(ISLR::Default$default)
+y<-c()
+y[def==2]<-1
+y[def==1]<-0
+N<-1
+logL <- function(p) sum(log(dbinom(y, N, p)))
+```
+
+<li>然後用optimize函數求極大值：</li>
+```{r}
+logL(0.1)
+optimize(logL, lower=0, upper=1, maximum=TRUE)
+```
+
+<li>計算平均值驗證：</li>
+```{r}
+mean(y)
+```
+
+## 常態分佈資料的MLE
+<li>常態分佈的log-likelihood函數可寫成：</li>
+
+\[\mathcal{L}(X|\mu,\sigma^2)=\frac{-n}{2}\rm{ln}(2\pi\sigma^2)-\frac{1}{2\sigma^2}\sum (x_{i}-\mu)^2\]
+
+
+<li>參考[Joel S Steele](http://web.pdx.edu/~joel8/resources/ConceptualPresentationResources/MLE_examples_final1.pdf)畫圖顯示常態分佈，確認機率密度函數無誤。</li>
+```{r}
+# specify the single value normal probability function
+norm_lik = function(x, mu, s){
+y = 1/sqrt(2*pi*s^2)*exp((-1/(2*s^2))*(x-mu)^2)
+}
+
+# and plot it just to make sure
+xval=seq(-3,3, length.out = 600)
+yval=sapply(seq(-3,3, length.out=600),FUN=norm_lik,mu=0,s=1)
+plot(xval, yval, type='l', ylab='',xlab='', main='Normal Distribution',
+     col='#FF22EE', lwd=1.5)
+```
+
+<li>模擬資料後，寫下log函數。</li>
+```{r}
+#Data
+set.seed(270511)
+xvec<-rnorm(600, 1.5, sqrt(pi))
+fn <- function(theta) {
+  sum ( 0.5*(xvec - theta[1])^2/theta[2] + 0.5* log(theta[2]) )
+}
+library(stats4)
+nlm(fn, theta <- c(0,1), hessian=TRUE)
+```
+
+<li>另一種函數的寫法：</li>
+```{r}
+# Likelihood function
+llik = function(x,par){
+  m=par[1]
+s=par[2]
+n=length(x)
+# log of the normal likelihood
+# -n/2 * log(2*pi*s^2) + (-1/(2*s^2)) * sum((x-m)^2)
+ll = -(n/2)*(log(2*pi*s^2)) + (-1/(2*s^2)) * sum((x-m)^2) # return the negative to maximize rather than minimize
+return(-ll) }
+```
+
+
+<li>用optim極大化函數：</li>
+```{r results=F}
+set.seed(270511)
+xvec<-rnorm(600, 1.5, sqrt(pi))
+# call optim with the starting values 'par', # the function (here 'llik'),
+# and the observations 'x'
+res0 = optim(par=c(.5,.5), llik, x=xvec)
+#Result
+print(kable( cbind('direct'=c('mean'=mean(xvec),
+                              'sd'=sd(xvec)),
+        'optim'=res0$par),digits=3))
+```
+
+
+
+
+
+<li>結果估計都是1.53。</li>
+<li>極大化的過程中，最大概似值越大表示資料越符合特定的分佈，或者是- log likelihood越小越好。</li>
+
+## 實例
+$\blacksquare$ 什麼樣的人會無法償還信用卡的債務？我們用glm()函數估計模型，注意要設定family=binomial(logit)。
+
+```{r, results=FALSE}
+library(ISLR); library(stargazer)
+M2 <- glm(default ~ balance, data=Default, family=binomial(logit))
+stargazer (M2, type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>default</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>0.005<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.0002)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-10.651<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.361)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-798.226</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>1,600.452</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"><em>Note:</em>
+<sup>***</sup>:p<0.01</td></tr>
+</table>
+
+<li>估計結果寫成方程式為：</li>
+\[
+\begin{eqnarray}
+\frac{p(X)}{1-p(X)} & = & exp^{-10.651+0.0055\cdot \mathtt{balance}}\\
+ & = & exp^{-10.651}\cdot exp^{0.0055\cdot \mathtt{balance}}
+\end{eqnarray}
+\]
+
+<li>由以上可知，$\hat{\beta}_{1}=0.0055$，代表增加一個單位的<span style="color:red">信用卡扣掉貸款的消費金額(balance)</span>，會增加<span style="color:red">違約(default)</span>的指數勝算(log odds)0.0055，或者是違約對不違約的勝算增加$\text{exp}^{0.0055}=1.005515$。</li>
+
+我們畫圖表示$\frac{p(X)}{1-p(X)}$與自變數的關係：
+```{r}
+a=-10.651; b=0.0055
+y=exp(a)*exp(b*ISLR::Default$balance)
+yi=sort(y)
+xi=sort(ISLR::Default$balance)
+dt <-data.frame(yi, xi)
+library(ggplot2)
+ggplot(dt, aes(x=xi, y=yi)) +
+  geom_point(col='#CC9933')
+```
+
+另外畫圖表示$p(X)$與$\frac{e^\eta}{1+e^\eta}$的關係：
+```{r}
+a=-10.651; b=0.0055
+xi=sort(ISLR::Default$balance)
+ETA=a + b*xi
+pi=exp(ETA)/(1+exp(ETA))
+
+dt <-data.frame(x=xi, y=pi)
+library(ggplot2)
+ggplot(dt, aes(x=xi, y=pi)) +
+  geom_point(col='#FF9933')
+```
+
+可以看出$p$值隨著自變數的增加而上升，但是不會小於0或是大於1。中間有一段接近線性函數。當$p$接近0，$\rm{log}\frac{p(X)}{1-p(X)}\approx -\infty$，當$p$接近1，$\rm{log}\frac{p(X)}{1-p(X)}\approx \infty$。
+
+
+## 勝算比(odds ratio)
+勝算比(odds ratio)是兩個勝算的比值。例如某家連鎖超市舉辦抽獎活動，經過統計，有八成的參加者是男性，兩成是女性，也就是$p=0.8$，$q=1-p=0.2$。分別計算勝算值：
+\[
+\text{odds(male)}=\frac{0.8}{0.2}=4
+\]
+\[
+\text{odds(female)}=\frac{0.2}{0.8}=0.25
+\]
+<li>根據上述，男性參加抽獎是女性的16倍，因為$\frac{4}{0.25}=16$</li>
+<li>那麼logit模型跟勝算比有什麼關係？因為經過轉換之後，</li>
+\[
+\begin{eqnarray}
+\beta_{1}&=&\text{log(odds}_{x=1})-\text{log(odds}_{x=0})\\
+&=&\text{log}(\frac{\text{odds}_{x=1}}{\text {odds}_{x=0}})
+\end{eqnarray}
+\]
+<li>所以$\text{exp}^{\beta_{1}}$等於當=1是x=0的y=1的倍數。這個解釋特別適用於自變數是二元類別的模型。</li>
+<li>例如自變數是有無學生身份，預測是否違約的模型為：</li>
+```{r, results=FALSE}
+M3 <- glm(default ~ student, data=Default, family=binomial(logit))
+stargazer (M3, type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>default</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">studentYes</td><td>0.405<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.115)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-3.504<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.071)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-1,454.342</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>2,912.683</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right">
+  <sup>*</sup>p<0.05;
+  <sup>**</sup>p<0.01;
+  <sup>***</sup>p<0.001</td></tr>
+</table>
+
+<li>$\hat{\beta}_{1}=0.404$，代表學生比非學生有$\text{exp}^{0.404}=1.497$倍的勝算發生違約。</li>
+
+### 實例
+<li>假設有一個自變數的值為1到5，估計logit模型得到ln$\frac{P_{i}}{1-P_{i}}=1+0.5X$</li>
+<li>當x=1，exp(x$\beta$)=exp(1.5)=4.48，而1+exp(3.5)=5.48，Pr(y=1|x=1)=$\frac{4.48}{5.48}$=0.81 </li>
+<li> 當x=2，Pr(y=1|x=2)=0.88 </li>
+<li> 當x=3，Pr(y=1|x=3)=0.92 </li>
+<li> 可以看出當x增加1個單位，機率增加的程度會因為x從哪一個值增加而有所不同。</li>
+<li> 但是exp($\beta$)= exp(0.5)=1.64，表示增加勝算1.64-1=64\%。增加勝算的幅度是固定的，並不會因為x的大小而不同。</li>
+<li> 而exp($\beta$)= exp(0.5)=1.64，表示x每增加1個單位，y是1對上y是0的勝算比，或者是勝算的對數（log of odds）增加1.64。</li>
+
+### 雙變數二元勝算迴歸模型
+
+我們也可以同時估計兩個自變數與依變數的關係：
+```{r, results=FALSE}
+M4 <- glm(default ~ balance + student, data=Default, family=binomial(logit))
+stargazer (M4, type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>default</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>0.006<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.0002)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">studentYes</td><td>-0.715<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.148)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-10.749<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.369)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-785.841</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>1,577.682</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+<li>比較前後三個模型，balance的係數幾乎一樣，但是studentYes從正變成負，也就是對於同樣的信用卡消費金額扣掉貸款之後，學生反而不會違約。</li>
+
+## 比較OLS與Logit模型估計結果
+
+```{r results=FALSE}
+library(ISLR); library(stargazer)
+Default$default.n <- as.numeric(Default$default)
+Default$default.n <- Default$default.n-1 #No=0, Yes=1
+M1 <- lm(default.n ~ balance+student, data=Default)
+logM <- glm(default.n ~ balance+student, data=Default,
+            family=binomial(logit))
+stargazer(M1, logM, type="html")
+```
+
+<table style="text-align:center"><tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="2"><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="2" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td colspan="2">default.n</td></tr>
+<tr><td style="text-align:left"></td><td><em>OLS</em></td><td><em>logistic</em></td></tr>
+<tr><td style="text-align:left"></td><td>(1)</td><td>(2)</td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>0.0001<sup>***</sup></td><td>0.006<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.00000)</td><td>(0.0002)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td style="text-align:left">studentYes</td><td>-0.015<sup>***</sup></td><td>-0.715<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.004)</td><td>(0.148)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-0.073<sup>***</sup></td><td>-10.749<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.003)</td><td>(0.369)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td><td>10,000</td></tr>
+<tr><td style="text-align:left">R<sup>2</sup></td><td>0.124</td><td></td></tr>
+<tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.124</td><td></td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td></td><td>-785.841</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td></td><td>1,577.682</td></tr>
+<tr><td style="text-align:left">Residual Std. Error</td><td>0.168 (df = 9997)</td><td></td></tr>
+<tr><td style="text-align:left">F Statistic</td><td>707.060<sup>***</sup> (df = 2; 9997)</td><td></td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="2" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+上面的表格中的第一欄顯示，增加一個單位的信用卡未償金額，只會增加萬分之一單位的違約。但是第二欄顯示，增加一個單位的信用卡未償金額，違約對不違約的機率會增加1.005倍。
+
+# Probit 模型的基本原理
+
+<li>常態分佈的隨機變數$X$有對應常態分佈的機率(PDF)，以及累積機率(CDF)，可寫成$P(X < x)$，也就是累積到$x$之前的機率。也可表示為$F(X)$或者是$\Phi(\cdot)$。</li>
+<li>對於任何的常態分佈的隨機變數，$F$函數可以轉換為標準化的累積機率分佈</li>
+<li>標準化常態分佈的隨機變數$X$經常表示為$Z$，所以$Z$服從標準化常態分佈：</li>
+$Z \sim \mathcal{N}(\mu = 0, \hspace{0.1cm}\sigma = 1)$
+
+例如我們想計算X<0.25的標準化CDF，而且$\mu=1$、$\sigma^2=2$。計算方式為：
+$P(X < 0.25) = P(\frac{X - \mu}{\sigma} < \frac{0.25-\mu}{\sigma}) = P(Z < \frac{0.25 - 1}{2}) = \Phi\left(\frac{0.25 - 1}{2}\right) = 0.3538$
+```{r}
+x=0.25; mu=1; sd=2
+pnorm(x, mu, sd)
+```
+
+我們可以畫圖如下：
+```{r}
+x<-seq(-5, 5, length.out=1000)
+CDF <- c()
+for (i in 1: 1000){
+   CDF[i] = pnorm(x[i], 1, 2)
+}
+dt <- data.frame(x, CDF)
+library(ggplot2)
+ggplot(data=dt, aes(x=x, y=CDF)) +
+      geom_line(col='#CC33FF', size=1.5)
+```
+
+<li>由上圖可知，標準化常態分佈的累積機率密度介於0與1之間。可以寫成$\Phi(Z)\in [0,1]$。當$x=0$，剛好累積$50\%$。</li>
+<li>我們模擬重複3000次的實驗，每次有1000個樣本，而成功的機率為0.1到0.99的一致分佈中隨機抽取一個數。如果1000個樣本中，至少有$k*p*d$的成功次數，其中d是常態分佈隨機抽出的亂數，便把這個實驗結果稱為1，也就是有3000個實驗結果。再以常態分佈產生自變數$X$，並且以probit函數估計自變數的作用。</li>
+```{r}
+set.seed(100)
+n=3000; k=1000; p=runif(1,0.1,0.99); d=rnorm(1, 1, 0.01)
+V=rbinom(n, k, p)
+Vy<-c()
+for (i in 1: n){
+         if(V[i]>=k*p*d)
+           Vy[i]=1
+          else(Vy[i]=0)
+}
+table(Vy)
+X=rnorm(n, p*d, sqrt(p*(1-p)))
+fit1 <- glm(Vy ~ X, family=binomial(probit))
+summary(fit1)
+```
+
+接著代入係數，求出$Z(X\beta)$，也就是$Z$分數。
+```{r}
+set.seed(100)
+n=3000; k=1000; p=runif(1,0.1,0.99); d=rnorm(1, 1, 0.01)
+newCDF <- c()
+xval=sort(X)
+for (i in 1: n){
+   newCDF[i] = pnorm(0.210-0.094*X[i],  p*d, sqrt(p*(1-p)))
+}
+Z <-sort(newCDF)
+dt<-data.frame(Vy, X, xval, Z)
+
+library(ggplot2)
+G=ggplot(data=dt, aes(x=xval, y=Vy)) +
+   geom_point(size=1.5) 
+G+geom_line(data=dt, aes(x=xval, y=Z), 
+            col='#33EEFF', size=1.2) 
+```
+
+
+<li> 由於依變數為二元變數$Y_{i}=0$或1，服從伯努利分佈，參數為次數$N$與機率$P$，表示成$P_{i}(Y_{i}=1)$</li>
+<li> logit轉換依變數$Y_{i}$變成$P_{i}$，介於$\{0, 1\}$。而log-odds再轉換成$\{-\infty, \infty \}$，標準常態分佈的累積機率，又稱probit或者成長曲線迴歸（黃紀、王德育，2012:87），依變數仍然是$\{0, 1\}$。稱為二元機率單元模型。</li>
+<li> 標準常態分佈可寫成: 
+\[
+\text{Pr(y=1|x)}=F(Z)=\int_{-\infty}^{\beta_{0}+X\beta_{1}}\frac{1}{2\pi}exp(-u^2/2)du\equiv \Phi (Z)\] </li>
+<li> probit function 轉換$X\beta$成為常態分佈的$Z$分數，所以$X\beta$越大，Pr(Y=1)越大。</li>
+<li>Probit模型可寫成</li>
+\[\rm{Pr}(y=1|X)=\Phi(X\beta)\]
+
+<li>Logit, Probit兩種模型得到的結果類似，但是前者的係數比較容易詮釋。</li>
+
+## Probit 模型
+
+<li> 常態分布$N(0, 1)$的累積機率密度可計算如下：</li>
+<li>  當X$\beta$=-2，Pr(y=1)=$\Phi(-2)=0.022$</li> 
+<li>  當X$\beta$=-1，Pr(y=1)=$\Phi(-1)=0.158$</li> 
+<li>  當X$\beta$=2，Pr(y=1)=$\Phi(2)=0.977$</li> 
+可用`R`計算：
+```{r}
+pnorm(-2, 0, 1)
+pnorm(-1, 0, 1)
+pnorm(2, 0, 1)
+```
+
+計算全部X$\beta$從-3到3在常態分佈時$N(0,1)$的累積機率密度：
+```{r}
+j<-c()
+k<-seq(-3, 3, 0.1)
+n <- length(k)
+
+for (i in 1:n)
+{
+  j[i] <- pnorm (k[i], 0, 1)
+  
+}
+
+plot(k, j, main="CDF", xlab=expression(paste('X',beta)), ylab="Probability",
+     type="l", lwd=1.5)
+```
+
+<li>  由以上可知，$0<\Phi(Z)<1$，而且累積的機率形成S形的曲線。</li> 
+<li>  當x增加一個單位，Pr(y=1) 增加$\beta$的Z值。</li>
+<li> Probit的累積機率(cdf)可畫成如下：
+
+![](probitcdf.png){height=400px, width=400px}
+
+## Probit模型的詮釋
+
+<li>參考[UCLA](https://stats.idre.ucla.edu/r/dae/probit-regression/)的例子，估計是否被錄取的模型：</li>
+```{r results=FALSE}
+Admit<-read.csv("https://stats.idre.ucla.edu/stat/data/binary.csv")
+Admit$rank.f<- factor(Admit$rank)
+stargazer(Admit, type = 'html')
+```
+<table style="text-align:center"><tr><td colspan="8" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Statistic</td><td>N</td><td>Mean</td><td>St. Dev.</td><td>Min</td><td>Pctl(25)</td><td>Pctl(75)</td><td>Max</td></tr>
+<tr><td colspan="8" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">admit</td><td>400</td><td>0.318</td><td>0.466</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td style="text-align:left">gre</td><td>400</td><td>587.700</td><td>115.517</td><td>220</td><td>520</td><td>660</td><td>800</td></tr>
+<tr><td style="text-align:left">gpa</td><td>400</td><td>3.390</td><td>0.381</td><td>2.260</td><td>3.130</td><td>3.670</td><td>4.000</td></tr>
+<tr><td style="text-align:left">rank</td><td>400</td><td>2.485</td><td>0.944</td><td>1</td><td>2</td><td>3</td><td>4</td></tr>
+<tr><td colspan="8" style="border-bottom: 1px solid black"></td></tr></table>
+
+接下來用glm函數估計自變數的係數：
+```{r results=F}
+fit1 <- glm(admit ~ gre + gpa + rank.f, 
+            family = binomial(link = "probit"),  data = Admit)
+stargazer(fit1, type='html')
+```
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>admit</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">gre</td><td>0.001<sup>**</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.001)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">gpa</td><td>0.478<sup>**</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.197)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">rank.f2</td><td>-0.415<sup>**</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.195)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">rank.f3</td><td>-0.812<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.208)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">rank.f4</td><td>-0.936<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.245)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-2.387<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.674)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>400</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-229.207</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>470.413</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+<li>雖然我們可以說在其他變數相同的情況下，GRE分數增加一個單位，$Z$分數增加0.001，但是計算累積機率密度更能看出自變數變化時，依變數變化的程度。</li>
+<li>模型估計結果為：</li>
+\[F(-2.387+0.001*\rm{GRE}+0.478*\rm{GPA}-0.415*\rm{rank2}-0.812*\rm{rank3}-0.936*\rm{rank4})\]
+<li>假設GPA成績為0、學生屬於第一等級，當GRE分數為500，累積機率密度為：</li>
+\[F(-2.387+0.001*500)=0.0295\]
+用`R`計算：
+```{r}
+pnorm(-2.387+0.001*500)
+```
+<li>假設GPA成績為0、學生屬於第一等級，當GRE分數為600，累積機率密度為：</li>
+\[F(-2.387+0.001*600)=0.0369\]
+```{r}
+pnorm(-2.387+0.001*600)
+```
+<li>假設GPA成績為0、學生屬於第一等級，當GRE分數為700，累積機率密度為：</li>
+\[F(-2.387+0.001*600)=0.0458\]
+```{r}
+pnorm(-2.387+0.001*700)
+```
+
+以上計算方式可以代入GPA的平均值，或者其他的GRE分數，得到不同的累積機率密度。
+
+<li>畫圖顯示不同的GPA情況下，當GRE分數增加時，不同等級的學生的錄取機率增加的趨勢：</li>
+```{r}
+newdata <- data.frame(gre = rep(seq(from = 200, to = 800, length.out = 100), 
+    4 * 4), gpa = rep(c(2.5, 3, 3.5, 4), each = 100 * 4), rank.f= factor(rep(rep(1:4, 
+    each = 100), 4)))
+newdata[, c("p", "se")] <- predict(fit1, newdata, 
+                                   type = "response", se.fit = TRUE)[-3]
+library(ggplot2)
+ggplot(newdata, aes(x = gre, y = p, colour = rank.f)) +   geom_line() + 
+  facet_wrap(~gpa)
+```
+
+
+
+# 信賴區間
+<li> 當依變數$y_{i}\hspace{.5em}\sim\hspace{.5em} \text{Bin}(1,\pi_{i})$，logit 模型可寫成：</li>
+\[\text{ln}(\frac{\pi_{i}}{1-\pi_{i}})=X\beta 
+\]
+<li> 或者是 logistic 迴歸模型：</li>
+\[
+\pi_{i}=\frac{exp(X\beta)}{1+exp(X\beta)}
+\]
+
+<li> 將$\hat{\pi}$代入$\pi=\frac{1}{1+exp{-X\beta}}$，應用重複加權(iteratively reweighted least squares (IRLS)）的演算式，聚合以下算式：</li>
+\[\hat{\beta}=\mathcal{(X^{T}WX)^{-1}X^{T}Wz} \]
+<li> 進一步計算$\beta$的標準誤，表示為：</li>
+\[\hat{\beta}\sim \mathcal{N(\beta, \phi(X^{T}WX)^{-1})} \]
+
+<li> 應用重複加權(IRLS)的演算式，計算$\widehat{SE}$，得到上下區間：</li>
+\[ (\hat{\pi}-z_{\alpha/2}\widehat{SE},\hspace{1em}\hat{\pi}+z_{\alpha/2}\widehat{SE}) \]
+而且
+\[\frac{\hat{\beta_{j}} - \beta_{j}}{\widehat{SE}}\sim z \]
+<li> 其中，$\widehat{SE}=\sqrt{x^{T}(X{T}WX)^{-1}x)}$ </li>
+<li>運用IRLS 可以得到與`R`一樣的估計 </li>
+<li> 特別注意要去掉遺漏值 </li> 
+<li>  見[Patrick Breheny的語法](http://web.as.uky.edu/statistics/users/pbreheny/760/S13/notes/2-21.R)</li> 
+
+## MLE的應用
+<li> 概似機率的估計式的抽樣分佈會接近常態分佈，N(0, H)，其中H代表Hessian matrix （海森矩陣） </li>
+<li> MLE也適用在線性迴歸，見Gary King (1989) \textit{Unifying Political Methodology} 。最小平方法是MLE的特例。</li>
+<li> 貝氏統計也需要MLE構成可觀察資料的模型，乘以先驗的資訊得到後驗的機率分佈。</li>
+
+## 假設檢定
+<li>假設檢定是要測量係數的正確程度。</li>
+<li> 檢定虛無假設$\text{H}_{0}$:\hspace{.6em}$\pi=\pi_{0}$，根據這項假設計算$x\beta$，也就是$\hat{\beta}_{1}/\textit{SE}(\hat{\beta}_{1})$ </li>
+<li>如果$\hat{\beta}_{1}=0$，等於$p(X)=\frac{e^{\beta_{0}}}{1+e^{\beta_{0}}}$表示機率與X無關。但是我們不關心$\beta_{0}$。</li>
+<li></li>
+<li> 但是實際上我們直接計算區間估計，判斷是否顯著不等於0。</li>
+<li> 區間估計分為Wald 與 Likelihood ratio兩種</li>
+### Wald test
+<li> Abraham Wald 依據MLE發展出Wald confidence intervals, Wald test statistics等等</li>
+<li> Wald 的方法依賴對於概似機率的趨近，如果概似機率不佳，也就是$\hat{\beta}$與$\beta$相差很大，Wald的檢定結果就會不夠好</li>
+
+### LR test
+<li> LR 檢定的原理是比較兩個模型，一個是具有所有資訊(以$\theta$表示)的模型，一個是具有部分資訊(以$\hat{\theta}$表示)的模型。這兩個模型的比例表示為</li>
+\[\lambda=\frac{\mathcal{L}(\theta)}{\mathcal{L}(\hat{\theta})} \]
+
+<li>當$n\longrightarrow \infty$，</li>
+\[-2\hspace{.1em}\text{log}\hspace{.1em}\lambda\hspace{.5em}\xrightarrow{d}\hspace{.5em}\chi^2\]
+
+<li> 根據以上的定理，可導出</li>
+\[-2\text{log}\frac{L(\hat{\beta}|\beta^{1}=\beta^{1}_{0})}{L(\hat{\beta})}\leq \chi^2_{1-\alpha, q} \]
+<li> 其中$q$代表自由度，$\chi^2_{1-\alpha, q}$代表$\chi^2$分布的(1-$\alpha$)百分位</li>
+
+# 多變數二元迴歸模型
+<li>我們可以延伸上述的logit迴歸模型到多變數：</li>
+\[
+\text{log}(\frac{p(X)}{1-p(X)})=\beta_{0}+\beta_{1}X_{1}+\ldots+\beta_{p}X_{p}
+\]
+<li>因為多於一個變數，所以在詮釋其中一個變數的影響時，需要強調其他的變數在同樣水準。</li>
+<li>在計算預測值時，必須設定變數特定的值，除了我們所關心的自變數。例如平均值、眾數等等。</li>
+
+## 實例
+$\blacksquare$哪些因素影響信用卡違約？
+```{r, results=FALSE}
+library(ISLR); library(stargazer)
+M5 <-glm(default ~ balance+income+student, data=Default, family=binomial(logit))
+stargazer(M5, type='html')
+
+```
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>default</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>0.006<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.0002)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">income</td><td>0.00000</td></tr>
+<tr><td style="text-align:left"></td><td>(0.00001)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">studentYes</td><td>-0.647<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.236)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-10.869<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.492)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-785.772</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>1,579.545</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right">
+<sup>*</sup>p<0.1; 
+<sup>**</sup>p<0.05; 
+<sup>***</sup>p<0.01</td></tr>
+</table>
+
+<li>同樣收入、信用卡積欠金額的學生比非學生來得不會違約，統計上達到顯著水準。信用卡積欠金額同樣具有統計上顯著的影響。</li>
+
+### exp
+以下指令可建立$\text{exp}^{\beta}$：
+```{r results=FALSE}
+M5.or <- exp(coef(M5))
+stargazer(M5, coef=list(M5.or), type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>default</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>1.006<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.0002)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">income</td><td>1.000<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.00001)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">studentYes</td><td>0.524<sup>**</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.236)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>0.00002</td></tr>
+<tr><td style="text-align:left"></td><td>(0.492)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-785.772</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>1,579.545</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+### 預測值
+<li>predict()函數可計算模型的預測值。</li>
+<li>先建立一個資料框，包含三個自變數的平均值、最大值或者眾數。</li>
+```{r}
+allcoef <-data.frame(balance=rep(mean(Default$balance),2),
+                     income=rep(mean(Default$income),2),
+                     student=as.factor(c("Yes", "No")))
+allcoef
+```
+
+代入模型M5：
+\[\rm{Pr}(Y=1)=(e^{\eta})/(1+e^\eta)\]
+其中
+\[\eta=-10.869+0.006*\rm{balance}-0.647*\rm{student}\]
+
+```{r}
+allcoef$pred <-predict(M5, newdata=allcoef, type="response")
+allcoef<-cbind(allcoef, allcoef$pred)
+allcoef
+```
+
+### 比較Logit, Probit估計結果
+```{r, results=FALSE}
+library(ISLR); library(stargazer)
+M5 <-glm(default ~ balance+income+student, data=Default, family=binomial(logit))
+M6 <-glm(default ~ balance+income+student, data=Default, family=binomial(probit))
+stargazer(M5, M6, type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="2"><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="2" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td colspan="2">default</td></tr>
+<tr><td style="text-align:left"></td><td><em>logistic</em></td><td><em>probit</em></td></tr>
+<tr><td style="text-align:left"></td><td>(1)</td><td>(2)</td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">balance</td><td>0.006<sup>***</sup></td><td>0.003<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.0002)</td><td>(0.0001)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td style="text-align:left">income</td><td>0.00000</td><td>0.00000</td></tr>
+<tr><td style="text-align:left"></td><td>(0.00001)</td><td>(0.00000)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td style="text-align:left">studentYes</td><td>-0.647<sup>***</sup></td><td>-0.296<sup>**</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.236)</td><td>(0.119)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>-10.869<sup>***</sup></td><td>-5.475<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.492)</td><td>(0.238)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>10,000</td><td>10,000</td></tr>
+<tr><td style="text-align:left">Log Likelihood</td><td>-785.772</td><td>-791.609</td></tr>
+<tr><td style="text-align:left">Akaike Inf. Crit.</td><td>1,579.545</td><td>1,591.217</td></tr>
+<tr><td colspan="3" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="2" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+<li>Logistic迴歸模型的係數以及標準誤大約是Probit模型的兩倍。</li>
+
+<hr>
+
+# 作業
+<p1>1. 請隨機產生200個伯努利分佈的亂數，而且母體的機率是0.45。請問200個樣本的平均數是多少？請用最大概似法求出平均值。</p1>
+```{r include=F}
+set.seed(100)
+Y=rbinom(200, 1, 0.4)
+mean(Y)
+```
+
+```{r include=F}
+n<-1 # length(y) here's the change!
+# formulation for the log likelihood for the binomial 
+logL <- function(p) sum(log(dbinom(Y, n, p)))
+# again we can test the function for one value of p
+#logL(0.1)
+#plot logL
+p.seq <- seq(0, 0.99, 0.01)
+y=sapply(p.seq, logL)
+plot(p.seq, y, type="l", col='#6622EE',
+     xlab='p', ylab='Log Likelihood', xaxt='n')
+axis(1, seq(0, 1, 0.05), cex.axis=0.6)
+abline(h=max(y), lty=2)
+#optimum:
+optimize(logL, lower=0, upper=1, maximum=TRUE)
+```
+
+<p1>
+2. 請用以下的資料估計性別與錄取的關係：</p1>
+```{r}
+library(kableExtra)
+DT <-data.frame(admission=c(rep(1,10),rep(0,10)),
+                gender=c(rep(1,7), rep(0,3),rep(1,3),rep(0,7)))
+DT %>% 
+  kable('html') %>% 
+  kable_styling()
+```
+
+```{r include=FALSE}
+G1 <- glm(admission ~ gender, data=DT, family=binomial(logit))
+stargazer(G1, type="text")
+#Becaue exp(b)=odds of male/odds of female
+exp(1.695)
+#the odds of being admitted for males is 5.44 times that of females.
+#p/1-p = 5.44 (q/1-q)
+```
+
+<p1>
+3. 請估計以下資料中，暴露於某種物質(Ag)與是否存活(Surv)的關係</p1>
+
+```{r}
+library(kableExtra)
+DT <-data.frame(Surv=c(rep(1,11),rep(0,22)),
+                Ag=c(rep(1,9), rep(0,2),rep(1,8),rep(0,14)))
+DT %>% 
+  kable('html') %>% 
+  kable_styling()
+```
+
+```{r include=FALSE}
+fit1<-glm(Surv ~ Ag, data=DT, family=binomial(logit))
+# OR=e(2.064)=7.875. 
+```
+
+<p1>4. 接續上題，請比較probit與logistic的模型估計結果</pi>
+
+```{r include=FALSE}
+fit2<-glm(Surv ~ Ag, data=DT, family=binomial(probit))
+stargazer(fit1, fit2, type='text')
+# 1. Ag's coefficient and standard error are about twice large in logistic regression model as that in the probit model.
+# 2. Log likelihood is the same.
+```
+
+
+# 更新日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

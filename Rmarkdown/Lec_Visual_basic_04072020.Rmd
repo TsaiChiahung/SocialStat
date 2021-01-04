@@ -1,0 +1,659 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>資料視覺化：基礎指令</h1>
+header-includes:
+     - \usepackage{fancyhdr}
+     - \setlength{\headheight}{15.2pt}
+     - \pagestyle{fancy}
+     - \fancyhead[LE,RO]{蔡佳泓}
+     - \fancyfoot{}
+     - \chead{\textbf{社會科學統計方法}}
+     - \fancyhead[LO,RE]{\leftmark}
+     - \cfoot{\thepage}
+     
+author: "蔡佳泓"
+job: "東亞所"
+date: '4/7/2020'
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  
+classoption: "hyperref,"
+always_allow_html: yes
+
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+%\listoftables
+\listoffigures
+\end{center}
+
+
+```{r include=FALSE}
+library(showtext)
+showtext.auto(enable = TRUE)
+font_add("SimSun","Songti.ttc")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "left")
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+library(haven); library(foreign)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+
+# 課程目標
+我們將介紹`R`的繪圖指令，包括`ggplot2`的套件中的指令，把資料視覺化。雖然之前我們已經看過很多例子，但是仍然有必要詳細介紹包括直方圖、折線圖、散佈圖等等圖形，結合`dplyr`套件中的指令，以培養視覺化資料的能力。例如：
+
+```{r echo=TRUE}
+library(ggplot2)
+students<-read.table('./data/studentsfull.txt', sep='', header=TRUE)
+p <- ggplot(students, aes(x=Department, y=Score)) +
+  geom_point() +
+  theme_classic() 
+
+p + ggplot2::stat_summary(fun.y='mean', colour='red',size=3, 
+                    geom = "point")
+
+```
+
+
+---
+
+# 基本指令 
+<p>
+有人說，「一張照片勝過千言萬語」。以圖形表現變數之間的關係，在社會科學界過去經常被學者採用。  
+
+`R`內建了許多基本的繪圖指令，讓我們可以很輕鬆地使用，但是`ggplot2`提升了繪圖的層次，所以我們必須學習並且熟練`ggplot2`。  
+</p>
+
+## 基本概念
+<p>
+在`R`的基礎繪圖功能中，繪圖的元素有「點」、「線」、「大小」、「粗細」以及「顏色」等等。 
+</p>
+
+ - cex: 控制符號的大小
+ - col: 控制符號的顏色，也可以是灰階的濃度
+ - pch: 控制符號的形狀
+ - lwd: 控制線的粗細
+ - lty: 控制線的形狀
+
+圖 \ref{fig:elements}表示10種不同濃度黑色、10種不同形狀以及2種大小的點狀的散佈圖，加上粗細、顏色、形狀不同的垂直與水平線。
+```{r fig.cap="\\label{fig:elements}圖型的元素"}
+xn<-c(1:10)
+yn<-c(1:10)
+col<-c(80, 75, 70, 60, 50, 40, 30, 20, 10, 0)
+graycol<-paste("gray",col,sep="")
+graycol
+plot(xn, yn,
+  cex=c(rep(1, 5), rep(2,5)),
+  col=graycol,
+  pch=c(1,2,5,6,8, 16, 17, 20, 22, 24),
+  xlab="pch", ylab="cex",
+  xaxt="n", yaxt="n",
+  xlim=c(0,11),ylim=c(0,11), font.lab=2, cex.lab=1.5)
+axis(1, at=c(1:10), labels=c(1,2,5,6,8, 16, 17, 20, 22, 24))
+axis(2, at=c(1:10), labels=c(rep(1, 5), rep(2,5)))
+abline(v=6, lwd=2, col='red'); abline(h=6, lwd=3, lty=2)
+```
+
+從以上的指令以及圖形不難看出一些常用圖形參數。另外要說明幾個設定參數：
+
+ - xlab: X軸的標題
+ - ylab: Y軸的標題
+ - main: 圖形標題
+ - xlim: X軸最高的值
+ - ylim: Y軸最高的值
+ - xaxt='n': 控制X軸不顯示任何數字
+ - yaxt='n': 控制Y軸不顯示任何數字
+ - axis: X軸或是Y軸顯示的數字（labels ）以及位置（at ）
+ - font.lab: 控制X, Y軸名稱的大小
+ - cex.lab: 控制X, Y軸刻度名稱的大小
+
+那麼我們如何應用到資料分析？例如我們有一筆資料，其中有兩個連續變數，我們可以用散佈圖 \ref{fig:plot1} 來檢視：
+
+```{r fig.cap="\\label{fig:plot1}散佈圖一"}
+with(anscombe, plot(x1, y1, pch=16, cex=2, col='blue',
+     xlab='X', ylab='Y', main='x1-y1', xaxt='n'))
+axis(side=1, labels=c(1,"" ,"" ,"" ,"" ,6), at=c(4,6,8,10,12,14))
+```
+
+在第一個步驟中，圖 \ref{fig:plot1}的X軸沒有刻度，在第二步驟，我們加上頭跟尾兩個刻度。換句話說，透過\textbf{axis()}函數，我們可以設定X或Y軸任意的刻度。
+
+
+我們也可以先幫觀察值畫一個框，再用\textbf{points}這個函數，有同樣的效果：
+```{r fig.cap="\\label{fig:plot2}散佈圖二"}
+with(anscombe, summary(x1))
+with(anscombe, summary(y1))
+x<-c(1: max(anscombe$x1))
+y<-c(1: max(anscombe$x1))
+plot(x, y, type='n')
+with(anscombe, points(x1, y1, pch=16, cex=2, col='gray25'))
+```
+
+我們可以用\textbf{points}函數繪圖標示兩個變數對應的數值，並且用\textbf{which()}控制散佈圖 \ref{fig:plot3}顯示的顏色或者形狀，類似加上第三個變數的效果：
+```{r scatter, fig.cap="\\label{fig:plot3}散佈圖三"}
+x<-c(1: max(anscombe$x1))
+y<-c(1: max(anscombe$x1))
+plot(x, y, type='n')
+
+with(anscombe, points(x1[which(x1<=8)], 
+        y1[which(x1<=8)], pch=16, cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], 
+      y1[which(x1>8)], pch=10, cex=2, col='#ee0022'))
+abline(v=8, lwd=2, lty=3)
+```
+
+圖 \ref{fig:plot3} 顯示x1超過8是加上十字的圓點，小於8是紅色的點。
+
+ - 我們可以用\textbf{colors()}這個函數顯示657種顏色。
+ - 另外我們可以用#加上6碼的Hex指定`#RRGGBB`的顏色。可以查這個[網站](https://www.color-hex.com)輸入Hex6位數找到喜歡的顏色。
+
+有時候我們想增加多一點資訊，可以用\textbf{text}在觀察點旁邊加上文字，讓讀者更容易瞭解觀察值的順位。\textbf{pos} 控制文字的位置。例如圖 \ref{fig:plot4} 顯示11個觀察值的落點。
+
+```{r scatterandpoint, fig.cap="\\label{fig:plot4}散佈圖四"}
+plot(x, y, type='n')
+with(anscombe, points(x1[which(x1<=8)], 
+        y1[which(x1<=8)], pch=16, cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], 
+        y1[which(x1>8)], pch=16, cex=2, col='darkblue'))
+abline(v=8, lwd=2, lty=3)
+with(anscombe, text(x1, y1, 
+            c(1: nrow(anscombe)), pos=4))
+```
+
+也可以貼上觀察值本身的數字如圖 \ref{fig:plot5}：
+
+```{r scatterandtext, fig.cap="\\label{fig:plot5}散佈圖五"}
+plot(x, y, type='n', xlim=c(1, 16), xaxt='n')
+axis(1, labels = c(2:15), at=c(2:15))
+with(anscombe, points(x1[which(x1<=8)], y1[which(x1<=8)], pch=16, 
+                  cex=2, col='red'))
+with(anscombe, points(x1[which(x1>8)], y1[which(x1>8)], pch=22, 
+                cex=2, col='darkblue'))
+abline(v=8, lwd=2, lty=3)
+with(anscombe, text(x1, y1, paste(x1, y1, sep=","), pos=4))
+```
+
+
+\noindent
+$\blacksquare$請根據\textbf{ISLR::College}這筆資料的Top10perc排序，篩選出新生為高中前10\%畢業生的比率最高的前10名學校，觀察錄取率(Accept/Apps)與曾捐款的校友比率(perc.alumni)的關係，然後註記學校的名稱。
+```{r acceptandalumni, include=F}
+dt<-ISLR::College[rev(order(ISLR::College$Top10perc)),]
+dt<-dt[1:10,]
+dt<-dt%>%mutate(School=rownames(dt),
+                acceptance=Accept/Apps)
+x<-seq(0,1.2*max(dt$acceptance), length.out=20)
+y<-seq(0,1.2*max(dt$perc.alumni), length.out=20)
+
+plot(x, y, type='n', xlab="Acceptance Rate",
+     ylab="Pct. alumni who donate")
+
+with(dt, points(perc.alumni ~ acceptance, pch=2, cex=2, col='#1ae000'))
+with(dt, text(acceptance, perc.alumni,  c(School), pos=4, cex=0.7))
+
+```
+
+<hr>
+## 直方圖
+<p>
+直方圖可以表現單一類別變數的分佈，讓人一眼就可以看出哪一個類別有最多的次數或者百分比。例如圖 \ref{fig:bar1} 顯示學生的科系分佈：
+</p>
+</ul>
+```{r barplot1, fig.cap="\\label{fig:bar1}直方圖一"}
+students<-read.table('./data/studentsfull.txt', header=T, sep='')
+stu <- table(students$Department)
+barplot(stu, main="Departments", 
+xlab="", ylab="frequency")
+```
+
+直方圖的對象應該是具有名稱的摘要，所以要先把數字、字串或者是類別的向量改為表格的形式。直方圖也可以指定直方本身的顏色以及外框的顏色，例如圖 \ref{fig:bar2} 換了新的顏色。
+```{r barplot2, fig.cap="\\label{fig:bar2}直方圖二"}
+barplot(100*stu/nrow(students), main="Departments", 
+      xlab="", ylab="Percent", border='red', 
+      col='#0011EE22', ylim=c(0, 20))
+```
+
+如果想要表現兩個變數的交集，例如經濟系裡面有多少男生或女生的比例，可以先產生一個交叉列表，然後用<span style="color:green;">prop.table()</span>的函數產生條件機率，就可以繪出堆疊的直方圖 \ref{fig:bar3}。注意我們加上了圖例，才能了解不同色塊代表的意義。
+
+ - 如果圖例所使用的變數是類別變數，圖例函數寫成： legend = levels(students$Gender))，也就是回傳該變數的類別。如果在讀這筆資料時設定保留字串變數、不轉成類別變數。在此就要把性別轉為類別變數，才能帶出兩個類別，也就是legend = levels(as.factor(students$Gender))。
+
+
+```{r barplot3, fig.cap="\\label{fig:bar3}直方圖三"}
+student.table <- table(students$Gender, students$Department)
+barplot(100*prop.table(student.table, margin=2), 
+         col=c('brown', 'white'),
+        legend = levels(students$Gender))
+```
+
+我們可以換一個圖例的製作方式。圖 \ref{fig:barlegend} 先畫直方圖，
+再另外加上圖例，函數內需要設定文字及顏色，但是不能設定符號。請注意圖例的顏色與文字必須與圖形一致。
+
+  - 圖例的位置有“bottomright”, “bottom”, “bottomleft”, “left”, “topleft”, “top”, “topright”, “right”, “center”等等，比較常用的是topleft, topright, bottomright, bottomleft四種。
+```{r barplotlegend, fig.cap="\\label{fig:barlegend}直方圖與圖例"}
+student.table <- table(students$Gender, students$Department)
+barplot(100*prop.table(student.table, margin=2), 
+         col=c('blue', '#EE330011'))
+legend("top", fill=c('blue', '#EE330011'), c("M","F"))
+```
+
+
+如果想要更改類別的名稱，可以直接在\textbf{barplot()}之中設定參數，例如在直方圖 \ref{fig:bar4}，我們修改了類別的名稱：
+```{r barplot4, fig.cap="\\label{fig:bar4}直方圖四"}
+barplot(100*prop.table(student.table, margin=2),
+      names.arg=c("Aer","Che.", "Eco.", "Eng.", "Jou.", "Mec.","Phy.")) 
+```
+
+\noindent
+$\blacksquare$請嘗試讀取\textbf{PP0797B2.sav}這筆資料，然後畫長條圖表示\textbf{partyid}這個變數中，政黨各類別的相對次數。
+
+```{r include=F, fig.showtext=TRUE}
+df<-haven::read_sav("./data/PP0797B2.sav")
+xlabel<-sjlabelled::get_labels(df$partyid)
+df$pid<-car::recode(df$partyid, "6:7=99")
+xlabel<-xlabel[-7]
+with(df, barplot(100*table(pid)/length(pid), names.arg = xlabel))
+```
+
+<hr>
+
+## 盒型圖 (Box Plot)
+
+盒型圖又稱為箱型圖，於1977年由普林斯頓大學統計系教授約翰·圖基（John Tukey）發明。可以表現單一連續變數的中位數、25分位數、75分位數、極端值等等，也可以比較不同類別之下，連續變數的分佈情形。  
+
+例如我們觀察<span style="font-weight:bold">mpg</span>這個變數的盒型圖如圖 \ref{fig:boxp1}：
+
+```{r boxplot, fig.cap="\\label{fig:boxp1}箱型圖一"}
+boxplot(mtcars$mpg, ylim=c(0,40), yaxt='n')
+```
+
+中間的粗線代表中位數。盒型圖上方的線稱為inner fence或者是whisker，代表數列的極大值與75分位數加上四分位距的1.5倍兩個其中的極小值，下方的線代表數列的極小值與25分位數減去四分位距的1.5倍兩個其中的極大值。四分位距則是75分位數減去25分位數。超出inner fences被稱為極端值（outlier）。
+
+為了確認以上的定義，計算這個變數的25與75分位數： 
+```{r}
+quantile(mtcars$mpg, c(.25, .5, .75), type=6)
+```
+
+<span style="font-weight:bold">mtcars</span>裡面的<span style="font-weight:bold">mpg</span>的IQR約等於7.6，所以75分位數加上四分位距的1.5倍與25分位數減去1.5倍四分位距可用`R`計算如下：
+
+```{r}
+qu<-quantile(mtcars$mpg, c(.25, .5, .75), type=7)
+qu
+upper<- qu[3]+1.5*(qu[3]-qu[1])
+lower<- qu[1]-1.5*(qu[3]-qu[1])
+cat("upper", upper); cat("/", "lower", lower)
+
+# upper inner fence
+min(max(mtcars$mpg), upper)
+# lower inner fence
+max(min(mtcars$mpg), lower)
+```
+
+畫盒型圖 \ref{fig:boxp2} 對照上述的計算結果：
+```{r boxplot2, fig.cap="\\label{fig:boxp2}盒型圖二"}
+boxplot(mtcars$mpg, ylim=c(0,40), yaxt='n')
+axis(2, at=c(1:40, by=5), labels=c(1:40,by=5))
+```
+
+上述的資料並沒有極端值，我們可以觀察美國各州的面積，圖 \ref{fig:boxp3} 顯示有些州的面積接近60萬平方英里，有的不到10萬平方英里：
+
+```{r boxplot3, fig.cap="\\label{fig:boxp3}盒型圖三"}
+boxplot(state.area, ylab="Area of State")
+```
+
+
+然後請輸入下列指令：
+
+```rmarkdown
+y<-state.abb
+
+identify(rep(1, length(y)), y, labels=seq_along(y)))
+```
+然後用滑鼠對著圖形點擊，如果出現已經找到最近的點，可以按旁邊的finish，然後會呈現哪幾個觀察值被標示在圖形上面。例如第二個州是阿拉斯加，面積最大。
+
+我們可以對類別變數繪製另一個連續變數的箱型圖，例如：
+```{r boxplot4, fig.cap="\\label{fig:boxp4}盒型圖四"}
+Orange$tree <-ordered(Orange$Tree, levels=c(1,2,3,4,5))
+with(Orange, boxplot(circumference ~ tree))
+```
+
+由上圖 \ref{fig:boxp4} 可以看出，第一類型的四分位距比較小，其次是第三類型。而第四類型的中位數最大。
+###課間練習
+\noindent
+$\blacksquare$請試著畫`ISLR`套件中\textbf{Wage}資料的薪水盒型圖。薪水變數是該資料的列的名稱。
+
+```{r include=FALSE}
+boxplot(as.numeric(row.names(ISLR::Wage)),
+        col="#30e22a")
+```
+
+<hr>
+## 長條圖 (Histogram)
+我們可以從長條圖觀察連續變數的分佈，例如偏態以及峰值等等。
+
+因為連續變數有一定數量的值，而非像類別變數的值是離散的，所以應該用長條圖來呈現。例如圖 \ref{fig:hist1} 顯示美國50個州的傷害罪統計，有的州落在50件以內，有的州則在100到150中間：
+
+```{r histogram1, fig.cap="\\label{fig:hist1}長條圖一"}
+par(mfrow=c(1,2))
+hist(USArrests$Assault, col="tomato2")
+hist(USArrests$Assault, breaks = 15, col="tomato3")
+```
+
+上圖 \ref{fig:hist1} 的指令中，我們可以指定或者不指定長條的數目。不同的長條數目呈現不同的分佈。長條數目越多可能越接近資料，但是也會帶來許多雜訊。
+
+連續變數的每一個值的相對比例可以幫助我們了解分佈型態，因此，<span style="color:red">freq=F</span>參數強制長條圖呈現相對的比例，而非次數。圖 \ref{fig:hist2} 顯示傷害罪的機率密度。
+```{r histogram2, fig.cap="\\label{fig:hist2}長條圖二"}
+hist(USArrests$Assault, col="tomato4", freq = F, 
+     xlab="Assault", main="Assault in 50 States", breaks = 10)
+```
+
+ - `R`會自動挑選適合該變數分佈離散程度的寬度，breaks參數越大，寬度越小，有可能出現某一間隔沒有任何觀察值之狀況。但是寬度越大，變數的分佈越粗略。
+
+我們用模擬的資料來表現長條圖的參數<span style="color:red">break</span>的用途。我們從常態分佈的x抽出100個，計算平均值後記錄為y，然後重複1000次，也就是有1000個x的平均值。在圖 \ref{fig:hist3}，左邊的圖最多有10個等分，右邊的圖則是可以到50個，所以右邊的圖顯示比較多的直條。
+```{r histogram3, fig.cap="\\label{fig:hist3}兩個長條圖並列"}
+par(mfrow=c(1,2))
+
+y <- c()
+for (i in 1:1000)
+{x=rnorm(1000,0,1)
+ x.sample <- sample(x, 100)
+  y[i]=mean(x.sample)}
+
+hist(y, 10, probability = T)
+rug(jitter(y))
+hist(y, 50, probability = T)
+rug(jitter(y))
+
+```
+
+在長條圖上面可以加上特定分布的曲線，例如常態分佈曲線或者是一致分佈曲線：
+```{r histogram4, fig.cap="\\label{fig:hist4}加上機率密度曲線的長條圖"}
+par(mfrow=c(1,1))
+set.seed(02138)
+y <- c()
+for (i in 1:1000)
+{x=rnorm(1000,0,1)
+ x.sample <- sample(x, 100)
+  y[i]=mean(x.sample)}
+
+hist(y, 100, probability = T, col="gray90")
+
+curve(dunif(x, min=min(y), max=max(y)), add=T, col="blue", lwd=2)
+
+curve(dnorm(x, mean=mean(y), sd=sd(y)), add=T, col="red", lwd=2)
+```
+
+從上面的圖可以看出模擬的資料近似常態分佈，而常態分佈曲線比一致分佈曲線更接近資料分佈。
+
+我們再用\textbf{ggplot2::diamonds}中的price為例，用三種方法加上分布的曲線。由於這筆資料的單位比較大，所以先除以1000。第一種是直接加上機率密度曲線（粉紅）。第二種是加上右偏的卡方分佈曲線（藍）。第三種則是加上指數分佈曲線（黑）。指數分佈的函數為：
+
+$$f(x|\lambda)=\lambda e^{-\lambda x}\quad x\ge 0$$
+```{r}
+Y<-ggplot2::diamonds$price/1000
+
+hist(Y, freq =  F , breaks=25)
+lines(density(Y), lty=2, 
+      lwd=2, col="#e122aa")
+
+
+curve(dchisq(x, df=4), add=T, 
+      lwd=2, col="darkblue")
+
+curve(dexp(x, rate=.25), lwd=2, add=T)
+```
+
+
+
+有關各種分布的語法可看[Statistics Globe](https://statisticsglobe.com/probability-distributions-in-r)這個網站。
+
+<hr>
+## 折線圖 (Line Chart)
+之前在介紹散佈圖時，曾經設定參數<span style="color:blue">type='n'</span>，使觀察值不顯示出來，而除了<span style="color:blue">type='n'</span>，還有<span style="color:blue">b, c, h, o, p</span>等5個選項。而且，可以用單一變數繪圖表示分佈型態。
+
+例如圖 \ref{fig:line1} 顯示風速的趨勢：
+```{r line1, fig.cap="\\label{fig:line1}Airquality折線圖一"}
+with(airquality, plot(Wind, type='b'))
+```
+
+或者是圖 \ref{fig:line2} 設定不同的顏色以及符號，顯示臭氧層的變化情形：
+```{r line2, fig.cap="\\label{fig:line2}Airquality折線圖二"}
+with(airquality, plot(Ozone, type='o', pch=16, 
+                      cex=1.2, lty=2, lwd=2, col='red'))
+```
+
+
+### 時間序列資料
+
+資料有時間序列的型態，適用以折線圖顯示，例如<span style="color:blue">LakeHuron</span>這筆資料是時間序列資料，裡面的參數設定為<span style="color:red">type='o'</span>。
+```{r line3, fig.cap="\\label{fig:line3}Lake Huron折線圖"}
+plot(LakeHuron, type = "o", pch=16, cex=1.2, lty=2)  ## Index plot
+```
+
+那麼我們要如何建立時間序列資料？<span style="color:blue">ts()</span>函數可以轉換一個資料框為時間序列資料，要注意設定起始的時間點，可以以月份來切分，如果頻率為1，就是以1年為單位，如果頻率為2，就是半年，頻率為4，就是3個月：
+```{r}
+trend<-read.csv("./data/Tondutrend.csv",
+            header=T, sep=",")
+tonduts<-ts(trend, start=1992.6, frequency=2)
+```
+
+相對於其他軟體，`R`的優點在於允許時間點有缺漏，畫出來的圖形就有缺少某個或是某些時間點，不會強制連接前後兩個時間點。接下來是畫折線圖。圖 \ref{fig:line4} 顯示2004年以來統獨趨勢一直相當穩定，但是在2016年之後偏統的支持度似乎上升，到了2019年又下降，而偏獨立的民意上升：
+
+```{r line4, fig.cap="\\label{fig:line4}統獨趨勢圖", fig.showtext=TRUE}
+# Margin
+par(xpd=NA, mar=par()$mar+c(2.5, 0, 0, 0))
+# Plot
+plot(tonduts, plot.type=c("single"), lty=c(1,2,3,2),
+     ylab="%",xlab=NULL,pch='1', lwd=3,frame.plot=F,
+     col=c("gray20","gray60", "black", "gray80"),
+     xaxt="n", main="台灣民眾的統獨立場, 1992.6-2019.12")
+axis(1, at=seq(1992,2020,by=2))
+axis(2, at=seq(10,70,by=10))
+legend("bottomright", c("統一","維持現狀"),
+        inset=c(0.35, -0.6), col=c("gray20","gray60"),
+             lty=c(1,2), bty='n', lwd=3)
+legend("bottomright", c("獨立","無反應"), 
+        inset=c(0, -0.6), col=c("black", "gray80"),
+             lty=c(3,2), bty='n', lwd=3)
+text(2000, 30, paste("First Party Turnover"))
+```
+
+在圖形 \ref{fig:line4}中，我們設定<span style="color:red">xpd=NA</span>，允許圖形超過界線，而且設定圖形的邊線可以到原來區域的底部2.5個文字。這是因為折線有四條，需要一定的空間容納圖例，而為了避免與圖形重疊起見，我們把圖例放在X軸右下方，所以除了要設定參數<span style="color:red">"bottomright"</span>，還要設定<span style="color:red">inset(0.35, -0.6)</span>以及<span style="color:red">inset(0, -0.6)</span>。
+除了設定圖例出現的位置，還可以設定<span style="color:red">bty="n"</span>，強制圖例沒有外框。  
+
+最後，我們加上一點註解文字到圖形上面，當然，我們可以加上線條或是箭頭，請大家研究一下segment這個指令。相信這個折線圖會讓你的報告比其他軟體畫的圖看起來更專業。       
+
+###課間練習
+\noindent
+$\blacksquare$ 請畫圖表示\textbf{MASS::accdeaths}的趨勢。
+```{r include=FALSE}
+par(xpd=NA, mar=par()$mar+c(2.5, 0, 0, 0))
+plot(MASS::accdeaths)
+```
+
+<hr>
+## 特殊點狀圖
+<span style="color:red">symbols()</span>可以產生指定形狀、大小的散佈圖，而且可以進一步根據另一個變數的觀察值，調整散佈點的大小，例如圖 \ref{fig:pointplot1} 顯示兩個變數的散佈圖，加上另一個連續變數的大小程度：
+```{r bubble1, fig.cap="\\label{fig:pointplot1}特殊點狀圖一"}
+with(anscombe, symbols(x2, y1, circles=anscombe$x1,  
+          inches=0.2, fg='blue'))
+```
+
+可以看出有些圈圈比較大，有些比較小。再舉一個例子：
+
+```{r bubble2, fig.cap="\\label{fig:pointplot2}特殊點狀圖二"}
+with(USArrests, symbols(Murder, Assault, circles=UrbanPop,
+                         inches=0.12, bg="red"))
+```
+
+
+上圖 \ref{fig:pointplot2}顯示，雖然搶案與攻擊成正比，但是都市化人口越多的地方，不見得有更多的類似案件。
+
+###課間練習
+\noindent
+$\blacksquare$ 請畫圖表示\textbf{MASS::Boston}這筆資料中，與生師比(ptratio)與房價中位數(medv)的關係，並且考慮低社會地位人口比例(lstat)的作用。
+```{r bubble3, include=FALSE}
+with(MASS::Boston, symbols(ptratio, medv, circles=lstat,
+                         inches=0.12, bg="#01a231"))
+```
+
+# 作業
+<p1>
+1. 請針對\textbf{mtcars}這筆資料的<span style="font-weight:bold;">wt</span>以及<span style="font-weight:bold;">mpg</span>繪製散佈圖，並且加上車輛的名稱：</p1>
+```{r hw1, include=F}
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+##
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+with(mtcars, text(wt, mpg, row.names(mtcars), cex=0.6, pos=4, col="red"))
+```
+<p1>
+2. 請針對\textbf{ChickWeight}的，<span style="color:blue;">Diet</span>變數畫出直方圖，並且標示次數（提示：text(x, y, labels)，x, y 分別是標示次數的位置，而標示次數要轉為字串）。</p1>
+```{r hw2, include=F}
+bartable <- table(ChickWeight$Diet)
+mp <- barplot(bartable, xlab="Diet", col='white',
+              cex.axis = 1.5, cex.names = 1.5)
+freq <- c(bartable[[1]],bartable[[2]],bartable[[3]],bartable[[4]])
+
+text(mp, freq, as.character(freq), pos=1, col='red')
+```
+<p1>
+3. 請畫直方圖表示\textbf{mtcars}這筆資料中的變速箱（<span style="font-weight:bold;">am</span>）是屬於自動或是手動排檔之中，<span style="font-weight:bold;">gear</span>的比例。</p1>
+```{r hw3, include=F}
+mt.table <- table(mtcars$gear, mtcars$am)
+barplot(100*prop.table(mt.table, margin=2), 
+         col=c('brown', 'yellow', 'green'),
+        legend = unique(mtcars$gear),
+         names.arg=c('automatic','manual'))
+```
+
+4. 請嘗試讀取\textbf{PP0797B2.sav}這筆資料，然後畫長條圖表示\textbf{partyid}這個變數中，不同年齡(age)是否同意Q9（政府所做的是大多數是正確的）的相對次數。請注意讀取SPSS資料的方式，有的方式可以不讀取原先資料設定的遺漏值。
+```{r hw4, include=F}
+dt<-foreign::read.spss("./data/PP0797B2.sav",use.missings = F,use.value.labels = F)
+
+dt$Q9<-car::recode(dt$Q9, "1:2=1;3:4=2;95:98=NA")
+dt$age1<-car::recode(dt$age, "9=NA")
+xlabel<-sjlabelled::get_labels(df$age)
+tablexy<-with(dt, table(age1, Q9))
+barplot(100*prop.table(tablexy, margin=2), 
+         col=c('tan1','slategray','skyblue','seagreen1', 'salmon4'),
+        xaxt='n')
+axis(1, labels=c("不同意","同意"), at=c(1,2))
+legend("topright", fill=c('tan1','slategray','skyblue','seagreen1', 'salmon4'), xlabel[-6])
+
+```
+
+<p1>
+5. 請畫圖表示\textbf{Nile}的水位變化，並且指出大概是哪一年的水位最低與最高：</p1>
+```{r hw5, include=F}
+plot(Nile, type = "o", pch=16, cex=1.2, lty=2, xaxt='n')
+axis (1, at=c(1871:1970, by=1), labels=c(1871:1970, by=1))
+# highest about 1882
+# lowest about 1913
+```
+<p1>
+6. 請從\textbf{CS3171D1A.csv}資料選取前五個縣市，然後針對老年人口比率畫2000至2010年的折線圖，並且於圖例標示五個縣市。</p1>
+
+```{r hw6, include=F,fig.showtext=TRUE}
+library(foreign); library(reshape2)
+stat.dat<-read.csv("./data/CS3171D1A.csv",header=TRUE,sep=";",dec=".",fileEncoding="BIG5")
+tempold <- stat.dat[-1,]
+tempold2 <- tempold[1:11, 1:6]
+countyname<-colnames(tempold2)[2:6]
+oldts <- ts(tempold2, start=2000, frequency=1)
+oldts2 <- oldts[, -1]
+par(xpd=NA, mar=par()$mar+c(2.5, 0, 0, 0), family="YouYuan")
+plot(oldts2, plot.type=c("single"), lty=c(1,2,2,1,3),
+     ylab="%",xlab=NULL,pch='1', lwd=3,frame.plot=F,
+     col=c("gray20","gray60", "black", "blue","blue"),
+     xaxt="n", ylim=c(0,15), yaxt="n", main="老年人口")
+axis(1, at=seq(2000,2010,by=1))
+axis(2, at=seq(0, 15,by=1))
+legend("bottomright", countyname[1:3],
+        inset=c(0.35, -0.6), col=c("gray20","gray60", "black"),
+             lty=c(1,2,2), bty='n', lwd=3)
+legend("bottomright", countyname[4:5],
+        inset=c(0.1, -0.6), col=c("blue","blue"),
+             lty=c(1, 3), bty='n', lwd=3)
+```
+
+7. 請畫圖表示`mtcars`這筆資料中的gear的各個類別的mpg。
+```{r hw7, include=F}
+with(mtcars, boxplot(mpg ~ gear))
+```
+
+<p1>
+8. 請畫圖表示美國1986年調查的嬰兒體重\textbf{(MASS::birthwt)}的分佈。
+```{r hw8, include=F}
+hist(MASS::birthwt$bwt, col="seashell2",breaks = 20,
+     freq = F)
+```
+</p1>
+<p1>
+9. 請用折線圖表示\textbf{Orange}資料裡五種樹的樹齡與樹圍之間的關係。（提示：請考慮用for迴圈。另外請用subset()指定每一種樹的資料。）</p1>
+```{r hw9, include=F}
+Orange$Tree <- as.numeric(Orange$Tree) 
+ntrees <- max(Orange$Tree)
+
+# get the range for the x and y axis 
+xrange <- range(Orange$age) 
+yrange <- range(Orange$circumference) 
+
+# set up the plot 
+plot(xrange, yrange, type="n", xlab="Age (days)",
+   ylab="Circumference (mm)" ) 
+colors <- rainbow(ntrees) 
+linetype <- c(1:ntrees) 
+plotchar <- seq(18,18+ntrees,1)
+
+# add lines 
+for (i in 1:ntrees) { 
+  tree <- subset(Orange, Tree==i) 
+
+  lines(tree$age, tree$circumference, type="b", lwd=1.5, 
+
+    lty=linetype[i], col=colors[i], pch=plotchar[i]) } 
+```
+
+10. 請觀察\textbf{reshape2::tips}這筆資料的tips與total_bill兩個變數的關係，並且標記顧客是否抽煙(smoker)。請記得加上圖例。
+```{r hw10, include=FALSE}
+dt <- reshape2::tips
+
+
+x<-seq(0,1.1*max(dt$total_bill), length.out=20)
+y<-seq(0,1.1*max(dt$tip), length.out=20)
+
+plot(x, y, type='n', xlab="Total Bill",
+     ylab="Tip")
+
+with(dt, points(total_bill[smoker=="No"], tip[smoker=="No"], pch=8, cex=1, col='#c12ae0'))
+with(dt, points(total_bill[smoker=="Yes"], tip[smoker=="Yes"], pch=8, cex=1, col='#e1e000'))
+legend(0, 10, legend=c("Non-smoker","Smoker"),
+       col=c("#c12ae0","#e1e000"),
+       pch=c(8,8),cex=0.7)
+```
+
+
+
+# 更新內容日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

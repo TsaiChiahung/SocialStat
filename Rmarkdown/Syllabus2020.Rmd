@@ -1,0 +1,290 @@
+---
+title: "社會科學統計方法"
+author: 
+   - 蔡佳泓
+date: "2/25/2020"
+output:
+  pdf_document:
+    toc: no
+    fig_caption: yes
+    latex_engine: xelatex
+    includes:
+      in_header: headernew.tex
+  html_notebook:
+    highlight: textmate
+    number_sections: yes
+    theme: spacelab
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, collapse = TRUE,
+                       latex.options.color='blue')
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex")
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, include=FALSE}
+library(tidyverse)
+library(stargazer)
+options(stringsAsFactors = F)
+```
+\renewcommand{\contentsname}{目錄}
+\tableofcontents
+
+# 前言
+由於人類越來越重視數據做為決策的依據，因此資料科學最近變得非常熱門，但是早在資料科學出現之前，統計學已經幫助我們描述資料以及找出變數之間的關係，而學好統計學能避免被龐大的資料所困惑。不論是資料科學或是統計學，都需要培養基本的技能，才能透視資料後面的故事。
+ 
+`R`是免費的統計軟體，近年來廣被政治、經濟、醫學、管理等領域使用，有豐富的網路資源，不僅可用於各種統計模型，而且資料容易轉化為圖形，也就是視覺化非常容易，更可延伸至大數據分析。例如針對不同顏色鑽石的克拉數，用`ggplot2`畫成一個散佈圖：
+
+```{r echo=T, message=FALSE, warning=FALSE}
+require(ggplot2)
+qplot(carat, data = diamonds, geom = "histogram",  fill = color)
+```
+
+
+# 課程簡介 
+本課程目的是用`R`實作統計，讓修課者同時學習統計以及操作`R`，未來能夠進一步延伸到其他的領域。
+
+`R`與統計模型的網路資源非常豐富，對於同一個問題有不同的處理方式，授課老師可能只了解其中之一，因此上課內容不見得是唯一解決問題的方式，歡迎修課者隨時提出更佳的方法。
+
+課堂上有部分時間講解統計以及研究設計，有部分時間實際操作軟體，希望能讓修課者做中學。對於更深入的統計原理有興趣的同學可請教本所老師，或者至其他系所修課。
+
+# 課程目標
+本課程希望達到下列目標：
+
+ - 瞭解如何用`R`描述資料
+ - 瞭解如何用`R`整理資料
+ - 暸解如何用`R`從網路下載資料
+ - 暸解如何用`R`進行相關分析
+ - 瞭解如何用`R`進行線性迴歸模型
+ - 瞭解如何用`R`進行非線性迴歸模型
+
+# 上課方式  
+本課程主要由教師於課堂上講授並且現場操作示範，請修課者盡量自行準備筆電上課，課後可以到電腦教室複習。
+
+## 評分方式
+
+### 評分
+
+1. 作業 70%
+2. 期末報告 30% 
+
+### 作業
+每次上課後會有作業，請在下次上課之前繳交`R`的語法檔給助教以驗證執行。
+
+### 期末報告 
+ 期末報告的要求是展示對於資料以及統計的學習成果。每一組應該有2到3位同學，每一組選擇一筆現有資料，或者自行建立資料，然後以`R`描述資料型態，並且說明變數之間可能的關係，最後以線性或者非線性迴歸模型檢證假設，但是在這個階段不一定要有非常顯著的發現。報告字數約在6000字以內，請在報告中說明每一位組員負責的部分。評分標準為：
+ 
+ 
+   - *研究問題：10%*
+   - *資料收集與整理：40%*
+   - *資料分析： 30%*
+   - *整體寫作：20%*
+ 
+### 期末報告內容：
+   
+   1. 研究問題
+   2. 相關文獻
+   3. 資料與變數
+   4. 資料分析
+   5. 結論
+   
+### 期末報告進度
+
+  - 報告題目與分組成員名單繳交期限：6月2日（星期二）
+  - 期末課堂口頭報告：6月16日（星期二）
+  - 期末聚餐：6月16日（星期二）中午
+  - 書面報告繳交期限：7月24日（星期五）
+
+## 課程進度
+
+
+\begin{tabular}{| l | l | p{0.2\textwidth} | p{0.35\textwidth}|p{0.2\textwidth} |}
+\toprule
+週次	& 日期	& 主題	&說明	&參考書籍 \\
+\midrule
+1	& 2/25	& 課程簡介、安裝\tt{R} & 1.介紹課程以及\tt{R} & 蔡（Ch.1, 2）；林與陳（Ch. 5-7）\\
+ &  & & 2.介紹機率、間斷與連續變數 & \\
+\midrule
+2 & 3/3 & 資料型態、基本運算 & 將說明R的資料型態，包括數值、字串等等，以及基本運算，例如數學以及邏輯運算 &	蔡（Ch.3）；Verzani（Ch. 1）  \\
+\midrule
+3 & 3/10 & 讀取外部資料 & 將解釋如何設定條件讓\tt{R}依照邏輯計算答案，以及如何設定迴圈&蔡（Ch.7），Verzani （Ch.6） \\
+\midrule
+4 & 3/17 & 條件判斷、迴圈 & 將解釋如何設定條件讓\tt{R}依照邏輯計算答案，以及如何設定迴圈&蔡（Ch.7），Verzani （Ch.6） \\
+\midrule
+5 & 3/24 & 研究設計 & 討論研究設計應注意的變數之間的關係，為將來的研究報告打下基礎& James等人（Ch. 2） \\
+\midrule
+6 & 3/31 &	描述統計：集中趨勢、離散程度 &	介紹變數的集中趨勢以及離散程度 &	蔡（Ch.7），Verzani （Ch.2）；林與陳（Ch. 3-4）\\
+\midrule
+7 & 4/7	& 資料轉置、資料組合、長表與寬表 &
+介紹如何調整資料的格式，重組資料，使其更容易分析&	蔡（Ch.5）\\
+\midrule
+8 & 4/14 & 資料視覺化(1) &	討論資料的視覺化的基礎功能 &蔡（Ch.6），Verzani （Ch.3）\\
+\midrule
+9 & 4/21 & 網頁資料收集	& 台大新聞所謝吉隆老師講解如何寫爬蟲抓網路上的資料 &	課堂投影片\\
+\midrule
+10 & 4/28 & 資料視覺化(2) &	介紹\tt{ggplot2}以及\tt{lattice}套件的繪圖指令 &蔡（Ch.6），Verzani （Ch.3）\\
+\midrule
+11 & 5/5 & 統計估計、假設檢定、平均數分析 &	點估計的意義以及信賴區間的計算 &	Verzani （Ch. 8, 11）；林與陳（Ch. 10, 11）\\
+\midrule
+12 & 5/12 & 相關分析、卡方檢定 &	介紹兩個非連續變數之間的關聯，以及卡方檢定 &	蔡（Ch.7），Verzani （Ch.9）；林與陳（Ch. 12）\\
+\midrule
+13 & 5/19 & 線性迴歸原理 &	說明線性迴歸的原理以及假設檢定 &	蔡（Ch.8, 10），Verzani （Ch.10）；林與陳（Ch. 9-10）\\
+\midrule
+14 & 5/26 & 簡單迴歸 &	說明信賴區間以及如何以圖形詮釋迴歸 &	James等人 （Ch. 3）；林與陳（Ch. 14）\\
+\midrule
+15 & 6/2 &	複迴歸、虛擬變數、交互作用 &	說明有兩個以上的自變數時的迴歸模型，以及其中有一個是類別變數，以及兩個自變數之間有交互作用時的估計方式	& James等人 （Ch. 3） \\
+\midrule
+16 & 6/9 &	最大概似法、二元勝算對數迴歸模型 &	介紹最大概似法與非線性迴歸模型應用在依變項為二元而非連續變數	& Verzani （Ch. 12），James等人 （Ch. 4） \\
+\midrule
+17 & 6/16 & 課堂報告 & 每組同學報告期末書面報告的內容 & \\
+\midrule
+18 & 6/23 & 期末報告寫作 & 與老師討論期末報告內容 & \\ 
+\bottomrule
+\end{tabular}
+
+
+
+# 課程資訊
+
+## 課目代號
+260940001
+
+## 上課時間
+2/25-6/23，星期二，9:10-12:00
+
+## 上課地點
+綜合271112
+
+## 討論時間
+原則上訂在星期三中午十二點到一點，研究室位於綜合院館北棟5樓。如果更動時間將通知，需要預約其他時間請email: tsaich AT nccu.edu.tw。  
+
+## 助教
+阮柏堯（東亞所碩士生），email: yao92593 AT gmail.com
+
+## 上課講義與資料
+請到NCCU Moodle (1082_260940001_社會科學統計方法)下載上課講義，以及上課實例或者作業的資料到電腦主機：
+
+# 參考書目
+
+ - \textbf{統計學}
+ 1. 林惠玲、陳正倉，\textbf{現代統計學}，第四版，雙葉書廊。
+ 2. Gareth James, Daniela Witten, Trevor Hastie, and Robert Tibshirani, 2013. *An Introduction to Statistical Learning with Applications in R* (http://www-bcf.usc.edu/~gareth/ISL/ISLR%20First%20Printing.pdf)
+
+ - `R`
+ 1. 蔡佳泓，2014，*基礎統計分析：R 程式在社會科學之應用*，雙葉書廊。
+ 2. John Fox, 2002. *An R and S-Plus Companion to Applied Regression*, Sage.
+ 3. John Verzani, 2001. *Using R for Introductory Statistics*. (https://cran.r-project.org/doc/contrib/Verzani-SimpleR.pdf)
+ 4. 劉正山，2018，*民意調查資料分析的R實戰手冊*，五南出版社。
+ 
+# 網路資源
+## 資料萃取方法
+台灣資料愛好者年會在2014年提供的ETL（Extract-Transform-Load）講義，詳細說明資料萃取、轉置以便分析的過程。透過執行下列程式碼，可閱讀ETL之投影片。請參考[說明](https://github.com/TaiwanRUserGroup/DSC2014Tutorial)。如果你用Mac系統，先執行下載套件的程式碼：
+```{r ETL1, eval=FALSE}
+deps <- available.packages("http://taiwanrusergroup.github.io/R-2014/src/contrib")[1,"Imports"]
+pkgs <- strsplit(gsub("\\s", "", deps), ",")[[1]]
+for(i in seq_along(pkgs)) {
+  # You can change your favorite repository
+  if (require(pkgs[i], character.only = TRUE)) next
+  install.packages(pkgs[i], repo = "http://cran.csie.ntu.edu.tw")
+}
+install.packages('DSC2014Tutorial', repo = 'http://cran.csie.ntu.edu.tw', type = 'source')
+```
+然後依序執行下列程式碼，結果會出現在瀏覽器的網頁：
+```{r ETL2, eval=FALSE}
+library(DSC2014Tutorial)
+slides("Basic") #Basics: data type, basic operations, etc.
+slides("ETL1")  #ETL on R
+slides("ETL2")  #Web scrapping
+slides("DataAnalysis")   #Data analysis 
+slides("Visualization1") #R basic visualization
+slides("Visualization2") #R visualization using ggplot2
+slides("Visualization3") #R markdown
+```
+
+
+## 其他線上資源：
+
+ - 郭耀仁所撰寫的**認識R的美好**(https://bookdown.org/tonykuoyj/eloquentr/)提供許多初學者可能遭遇問題的解決方法，相當實用。
+ - 長庚大學資訊管理系的曾意儒教授所撰寫的**資料科學與R語言**(http://yijutseng.github.io/DataScienceRBook/index.html)，結構分明，值得參考。
+ - **輕鬆學習R語言**一書 (http://www.learn-r-the-easy-way.tw/chapters/1) 介紹的也很詳盡，還有習題。
+ - 同時鼓勵參考Hastie等人之前寫的有關統計與機器學習的書：Trevor Hastie, Robert Tibshirani, and Jerome Friedman, 2008. *The Elements of Statistical Learning: Data Mining, Inference, and Prediction* (https://web.stanford.edu/~hastie/Papers/ESLII.pdf)
+ - listendata這個網站介紹好幾種軟體，如果有空可以參考(https://www.listendata.com/p/r-programming-tutorials.html)。
+ - UCLA 的統計資源中心--[IDRE](https://stats.idre.ucla.edu)有非常多的統計軟體的運用介紹，其中`R`的部分在(https://stats.idre.ucla.edu/r)。
+
+
+# 上課前準備
+## 下載R
+搜尋R project就可以找到`R`的網站，請找download`R`的連結，然後按照電腦的系統下載最新的版本到你的電腦。請安裝64位元版本。
+
+### 請用英文設定作業系統的使用者名稱
+Windows 作業系統的使用者帳戶名稱若設定為中文（例如「管理員」），會因為編碼而影響後續使用繪圖套件的功能，載入檔案與輸出也容易產生問題（郭耀仁）。
+
+### 查詢系統字體
+Windows 作業系統: 在命令行輸入 
+```
+C:\Windows\Fonts
+```
+Mac 作業系統：在終端機輸入 
+```
+fc-list :lang=zh
+```
+
+## 裝設RStudio
+`R`本身介面並不太友善，RStudio ![R Studio Logo](th.jpg){width=22px} 是一個免費的IDE，下載`R`之後請下載RStudio (http://rstudio.com)。
+如果喜歡把輸出結果放在右上角，可在RStudio設定：View-->Panes-->Console on Right
+
+## 安裝相關套件
+請在上課前安裝一些常用的套件。有些套件包含其他的套件，所以可以省一些工作。請在`R`指令行輸入：
+```
+mypkg <- c('foreign','ISLR','tidyverse','Zeligverse','car','ggplot2',
+'UsingR','lattice','nycflights13', 'stargazer','e1071',
+'CTT','ggthemes','Rcolorbrewer')
+install.packages(mypkg)
+
+```
+
+## 設定Rproj
+`R`可讓使用者在R-->環境設定中，設定要讀取資料來自的資料夾，或是儲存資料之前指定工作目錄，以確定分析結果例如畫圖可以儲存到特定的資料夾。也可以用語法表示，例如：
+```
+setwd('C:/my documents/mywork')
+
+```
+RStudio可以建立一個計劃案，連結特定的資料夾。每次只要打開這個計劃案，就不需要記憶資料夾的路徑，資料讀取、結果儲存都會到這個計畫案所在的資料夾。請參考以下步驟：
+ 
+ 1 假設在你的桌面開一個工作目錄叫做 class2019
+ 
+ 2 到本課程的moodle下載壓縮檔，解壓縮，然後複製貼上資料檔到class2019
+ 
+ 3 到RStudio-->File-->New Project-->existing director-->Browse （找到class2019）-->Create Project--Switching to project
+ 
+ 4 資料檔應該都在RStudio右下角的視窗了，下次你開RStudio，File-->Recent projects，選擇class2019，就會看到所有相關檔案在右下角。
+ 
+ 5 如果你打開Class2019這個Project但是不小心跳到別的資料夾，到右下角找到More-->Go To Working Directory，應該就會回到class2019
+
+\textcolor{red}{每一次進入RStudio之後，請打開想執行的計劃案，才能進入正確 的路徑，否則RStudio的內建路徑是由Tools-->Global Options-->General決定。}
+  
+# 更新內容 ．０
+日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```
+ 
+
+
+
+
+
+
+

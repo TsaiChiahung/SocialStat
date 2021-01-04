@@ -1,0 +1,602 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>迴歸係數假設檢定(v1.1)</h1>
+author: "蔡佳泓"
+job: <h1><u>東亞所<u></h1>
+date: '6/4/2019'
+output: 
+  html_document: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    fig_caption: true
+    #pandoc_args: ["-F","pandoc-crossref"]
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  
+---
+<style>
+body {
+    background-color: #F5F5DC;
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+    line-height: 1.8;
+}
+
+div >  p {
+    font-size: 22px;
+    text-indent: 24px;
+    font-style: BiauKai;
+    color:#171717; padding:10px;
+    font-family: Times, "王漢宗細圓體繁", "新細明體","文泉驛正黑", sans-serif;
+  }
+h2 {
+   font-size: 30px;
+  color: #800000; padding:10px;;
+    line-height: 2;
+   
+}  
+p1 {
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+  }
+p2 {
+    font-size: 20px;
+    color: blue;
+    font-family: "儷黑 Pro";
+    font-family:  Times, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "BiauKai", "微軟正黑體", "Microsoft JhengHei", sans-serif; 
+  }
+</style>
+
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(dplyr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+options(knitr.table.format = "html")
+```
+
+# 課程目標
+
+本週上課將介紹迴歸的假設檢定，也就是從樣本的迴歸係數推論母體的迴歸係數$\mu$。之前我們證明$\hat{\mu}=\bar{y}=\frac{1}{n}\Sigma_{i=1}^{n}y_{i}$。同理，$\hat{\beta}_{0}$與$\hat{\beta}_{1}$分別是$\beta_{0}$跟$\beta_{1}$的估計。
+
+# 中央極限定理(Central Limit Theorem)
+<li> 當樣本數在一定的規模時，樣本統計的無偏以及穩定特性都成立。</li>
+<li>無偏指的是樣本統計等於母體參數，穩定是找不到比樣本統計更小的變異數。</li>
+<li> 當樣本數趨近無限大時，抽樣分佈會趨近於特定的區間，而樣本統計系列$\theta_{1},\cdots \theta_{n}$則會趨近於特定的數，例如$\mu$。而$V[X_{n}]$趨近於0</li>
+<li>理論上，可以分析$E[\theta_{n}]\rightarrow \theta$以及$V[\theta_{n}]=0$是否為真。</li>
+<li> 也可以用模擬的方式檢驗是否當樣本數增加，抽樣分佈是否趨近一直線。</li>
+例如從平均值為0、變異數為1的常態分佈抽100個數，分成兩種方式計算平均值，也就是兩種樣本統計。第一種是$\frac{1}{n}\sum X_{i}$，第二種是$\frac{1}{n+1}\sum X_{i}$，畫圖顯示重複1000次之後，樣本平均值所構成的分佈。
+```{r}
+#Two sampling
+set.seed(02139)
+datam1<-rep(NA,1000)
+for (i in 1:1000){
+  datam1[i]<-mean(rnorm(100, 0, 1))
+}
+
+mean2<-function(x){
+  sum(x)/(length(x)+1)
+}
+datam2<-rep(NA,1000)
+for (i in 1:1000){
+  datam2[i]<-mean2(rnorm(100, 0, 1))
+}
+#Two graphs
+par(mfrow=c(1,2))
+hist(datam1,xlab=expression(paste(hat(mu)[1])),
+     main=expression(paste(hat(mu)[1]==frac(1,n),sum(X[i],i=1,N))),prob=T,
+     breaks=seq(-1, 1,by=0.01))
+hist(datam2,xlab=expression(paste(hat(mu)[2])),
+     main=expression(paste(hat(mu)[2]==frac(1,n+1),sum(X[i],i=1,N))),prob=T,
+     breaks=seq(-1, 1,by=0.01))
+
+```
+
+比較上面兩個圖，形狀都近似常態分佈，而且都集中在0附近。如果重複次數更多次，或者每個樣本數更大，那麼離散程度會越來越趨近於0，越來越集中在0。
+
+根據中央極限定理，如果$X$獨立抽樣於母體參數為$\mu$、$\sigma$的常態分佈母體，那麼隨著樣本數越來越大，$\frac{\bar{X}-\mu}{\sigma/\sqrt{n}}$會成平均值為0、變異數為1的常態分佈。
+我們從$\mu=1$、$\sigma=3$的常態分佈抽樣，每次抽出10、30、1000個，並且重複抽取10次與100次，觀察$\frac{\bar{X}-\mu}{s/\sqrt{n}}$是否會成平均值為0、變異數為1的常態分佈。
+
+```{r}
+par(mfrow=c(3,2))
+set.seed(02138)
+res <-c()
+s <- c()
+simulations <- c(10, 100)
+samples <- c(10, 30, 1000)
+for (i in 1:length(simulations)){
+for (j in 1:length(samples)){
+  f=function(n=samples[j], mu=1, sigma=3){
+          s=rnorm(samples[j], 1, 3)  
+          (mean(s)-mu)/sqrt((sum(s-mean(s))^2)/sqrt(n))
+  }
+xvals = seq(-3,3, 0.1) 
+hist(UsingR::simple.sim(simulations[i], f, samples[j], 1), probability=TRUE, breaks=30,  col='#3399FF', main=paste("N=", samples[j], ", Num. of Samples=", simulations[i]),
+     xlab=expression(mu))
+ xvals = seq(-3, 3, .01) 
+points(xvals,dnorm(xvals, 0, 1),type="l", lwd=2, col='#FF9933') 
+}
+}
+```
+
+指數(exponential)分佈也適用於中央極限定理。指數分佈的密度函數可寫成$\lambda e^{-\lambda t}$，期待值為$\frac{1}{\lambda}$，變異數為$\frac{1}{\lambda^2}$。
+當我們有$X_{1}\ldots X_{N}$抽自指數分佈的變數時，平均值為$\lambda$，變異數為$\frac{1}{N\lambda^2}$，而標準誤則為$\frac{1}{\lambda\sqrt{N}}$。
+例如我們畫出5個圖表示不同的樣本數大小的指數抽樣分佈，母體的平均數為10：
+
+```{r}
+par(mfrow=c(3,2))
+samples <-c(20, 100, 500, 1000, 3000)
+set.seed(02138)
+for (i in 1:length(samples)){
+f = function(n=samples[i],mu=10) (mean(rexp(n,1/mu))-mu)/(mu/sqrt(n))
+xvals = seq(-3,3,.01) 
+hist(UsingR::simple.sim(100,f,1,10), probability=TRUE, breaks=50,
+     main=paste("N=", samples[i]), xlab=expression(lambda), col='#3399FF')
+points(xvals, dnorm(xvals,0,1),type="l", lwd=2, col='#FF9933') 
+  }
+```
+
+二元分布的樣本平均數也會成常態分佈。假設抽出一個二元的樣本$n$次，例如抽出某一日的天氣紀錄，了解是否有下雨，重複抽$n$次，$Y=\sum_{i}^{n} X_{i}$，$X$代表是否有下雨，$Y$等於有下雨的總天數。$Y$與$X_{i}$都來自貝努利(Bernoulli)分佈。
+$X_{i}$的平均值為$p=\frac{Y}{n}$，也就是下雨的機率，而$p(1-p)$則是變異數。
+$Y$的變異數是：
+
+$V[Y]=V[\sum X_{i}]=\sum V[X_{i}]=np(1-p)$
+
+這是因為$Var(X)+Var(Y)=Var(X+Y)$。變異數的線性組合等於變異數之間的相加減。而因為$Y=nX_{i}$，故$V[Y]=nV[X]=np(1-p)$。
+當我們重複相同的實驗$k$次，得到無數的$Y$，構成完整的母體。此時平均值與變異數為何？因為$p=\frac{Y}{n}$，所以：
+
+$V[\frac{Y}{n}]=\frac{1}{n^2}V[Y]=\frac{1}{n^2}np(1-p)=\frac{p(1-p)}{n}$
+
+因此標準誤為$\sqrt{\frac{p(1-p)}{n}}$
+
+例如從二元分佈經過$k$次實驗後得到若干成功的次數，其中$p=0.25$。重複1000次同樣的程序之後，$Y$的標準化應該會形成一個常態分佈。
+```{r}
+set.seed(2019)
+results =numeric(0)
+k=100; p=0.25; mu=k*p # k is number of trials
+ for (i in 1:1000) {
+ S = rbinom(1, k, p)
+ results[i]=(S-mu)/sqrt(k*p*(1-p)) # 
+ }
+hist(results, probability = T, col='#3399FF', breaks=30, main='')
+xvals = seq(-3,3,.01) 
+points(xvals,dnorm(xvals,0,1),type="l", lwd=2, col='#FF9933') 
+```
+
+
+
+# 假設檢定
+
+<li> 假設檢定是要檢驗有關母體參數的假設。</li>
+<li>因為沒有辦法完全確定檢定結果無誤，所以必須假設願意接受多少判斷錯誤的機率。</li>
+<li>$\alpha$是錯誤地拒絕假設的機率，$\beta$是錯誤地不拒絕虛無假設的機率。</li>
+
+<h2>步驟</h2>
+
+ 1. 設定虛無假設 $\tt{H}_{0}$
+ 2. 決定$\alpha=$Pr(否定$\tt{H}_{0}$ | $\tt{H}_{0}$)的大小。
+ 3. 根據樣本統計以及$\tt{H}_{0}$選擇$t$值。
+ 4. 假設$\tt{H}_{0}$為真，建立$T$的虛無分佈（常態分佈）。
+ 5. 從分佈表查拒斥值(critical values)，估計$T$觀察值有多難出現（被觀察到）。
+ 6. 如果從上述分佈觀察到$T$的機率，跟$t$值比拒斥值$\alpha$小的機率一樣少見，那麼可以拒斥$\tt{H}_{0}$。
+ 7. 否則的話，如果我們沒觀察到與$\alpha$一樣小的拒斥值，無法拒斥$\tt {H}_{0}$。
+ 
+# 迴歸係數的檢定
+
+<li>我們抽出一套樣本得到的迴歸係數可能高估母體的係數，但是下一套可能低估，不斷地抽樣之後，所得到的迴歸係數的平均值理論上等於母體的係數。</li>
+<li>但是我們只有一套樣本，所以只能假設估計的係數是無偏估計。</li>
+<li>如何估計OLS樣本統計的精確程度？也就是OLS樣本統計的變異數？利用殘差項(residual)：</li>
+\[
+\hat{e}_{i}=y_{i}-\hat{y}_{i}=y_{i}-\hat{\beta}_{0}-\hat{\beta}_{1}x_{i} 
+\]
+
+<li>我們想從樣本來估計母體的誤差變異數，以$Var[\epsilon]=\sigma^{2}_{u}$表示。假設誤差項的分佈可以用Mean Squared Deviation (MSD)表示：</li>
+
+\[
+MSD(\hat{u})\equiv\frac{1}{n}\sum\limits_{i=1}^{n}(\hat{u}_{i}-\bar{\hat{u}})^2=\frac{1}{n}\sum\limits_{i=1}^{n}\hat{u}_{i}^2
+\]
+
+<li>誤差項的變異數的無偏估計為：</li>
+\[
+\begin{eqnarray}
+E[MSD(\hat{u})] &  = & \frac{n-2}{n}\sigma^{2}_{u}\\
+\sigma^{2}_{u} & = &\frac{n}{n-2}MSD(\hat{u})  \\
+  & =& \frac{n}{n-2}\cdot\frac{1}{n}\sum\limits_{i=1}^{n}\hat{u}_{i}^2 \\
+  & =& \frac{1}{n-2}\sum\limits_{i=1}^{n}\hat{u}_{i}^2
+\end{eqnarray}
+\]
+
+<li>因為估計$\hat{u}_{i}$需要$\hat{\beta}_{0}$, $\hat{\beta}_{1}$ 所以自由度為$n-2$ </li>
+$\frac{1}{n-2}\sum\limits_{i=1}^{n}\hat{u}_{i}^2$代入：
+\[
+\begin{eqnarray}
+ \hat{V}[\hat{\beta}_{1}|X] & = &\mathcal{\frac{\sigma_{u}^{2}}{\sum_{i=1}^{n}(x-\bar{x})^2}} \\
+& = & \frac{\sigma_{u}^{2}}{SST_{x}} 
+\end{eqnarray}
+\]
+\[
+\begin{eqnarray}
+\hat{V}[\hat{\beta}_{0}|X] & = &\sigma_{u}^{2}\mathcal{\{\frac{1}{n}+\frac{\bar{x}^2}{\sum_{i=1}^{n}(x-\bar{x})^2}}\}\\
+& = &\mathcal{\frac{\sigma_{u}^2\sum_{i=1}^{n}x^2}{n\sum_{i=1}^{n}(x-\bar{x})^2}}
+\end{eqnarray}
+\]
+where
+\[
+\sigma_{u}^{2}=\frac{1}{n-2}\sum\limits_{i=1}^{n}\hat{u}_{i}^2
+\]
+
+$\blacksquare$ 取開根號：$\sqrt{\hat{V}[\hat{\beta}_{0}|X]}$以及$\sqrt{\hat{V}[\hat{\beta}_{1}|X]}$ 
+<li>最小平方法迴歸必須假設誤差項與自變項沒有相關，而且假設平均數為0的常態分佈：</li>    
+
+\[
+u\sim N(0,\sigma_{u}^{2})
+\]
+
+<li>以上假設意義為：</li>
+
+\[
+\mathrm{Y}|\mathrm{X} \sim N(\beta_{0}+\beta_{1}X, \sigma_{u}^{2})
+\]
+
+也就是變異數同質性以及誤差項的平均值為0的假設。
+
+# 標準誤
+<li>$\beta_{0}$與$\beta_{1}$的標準誤分別是：</li>
+\[
+\mathrm{SE}(\hat{\beta_{0}})^2=\sigma^2[\frac{1}{n}+\frac{\bar{x}^2}{\Sigma_{i=1}^n(x-\bar{x})^2}]
+\]
+\[\mathrm{SE}(\hat{\beta_{1}})^2=\frac{\sigma^2}{\Sigma_{i=1}^n(x-\bar{x})^2}
+\]
+<li>我們無法計算母體的$\sigma^2$，但是可以用$\sqrt{RSS/(n-2)}$估計，也就是residual standard error。如果我們估計$\hat{\beta}_{1}$，可代入計算$\hat{Y}_{i}$，以及計算$\mathrm{SE}(\hat{\beta_{1}})$為：</li>
+\[
+\sigma^2=\frac{\Sigma(y-\hat{y})^2}{n-2}
+\]
+\[
+\mathrm{SE}(\hat{\beta_{1}})=\sqrt{\frac{\sigma^2}{\sum(x_{i}-\bar{x})^2}}
+\]
+
+# 信賴區間
+
+$95\%$的信賴區間相當於兩個標準誤，係數加減兩個標準誤構成一個$95\%$的信賴區間：   
+\[
+[\mathcal{\hat{\beta_{1}}-2\cdot \mathrm{SE}(\hat{\beta_{1}}), \hspace{.3em}\hat{\beta_{1}}+2\cdot \mathrm{SE}(\hat{\beta_{1}})}]
+\]
+
+<h2>假設檢定</h2>
+
+$\it{H}_{0}$: X與Y沒有關係，也就是$\it{H}_{0}$: $\beta_{1}=0$
+
+$\it{H}_{a}$: X與Y有某種關係，也就是$\it{H}_{a}$: $\beta_{1} \neq 0$
+
+<li>為了測試$\hat{\beta_{1}}$是否等於0，我們必須考慮$\hat{\beta_{1}}$的變異數，而我們用$t$分佈來檢驗：</li>
+\[
+t=\frac{\hat{\beta}_{1}-0}{\mathrm{SE}(\hat{\beta}_{1})}
+\]
+```{r}
+par(bty='n', yaxt='n')
+cord.x<-c(1.962, seq(1.962,3,0.01), 3)
+cord.x2<-c(-3, seq(-3, -1.962,0.01),  -1.962)
+cord.y<-c(0, dt(seq(1.962, 3, 0.01), 1000), 0)
+cord.z<- c(0, dt(seq(-3, -1.962, 0.01), 1000), 0)
+curve(dt(x, 1000),xlim=c(-3,3),
+      main=expression(paste("Normal Density with"," ", t[alpha/2]=="0.025")) , ylab='', xlab='t value')
+polygon(cord.x, cord.y, col="red3")
+polygon(cord.x2, cord.z, col="red3" , add=T)
+```
+
+單尾檢定可檢證$\hat{\beta}$是否大於0或是特定的數，對立假設是小於大於0或是特定的數：
+```{r}
+par(bty='n', yaxt='n')
+cord.x<-c(1.646, seq(1.646,3,0.01), 3)
+cord.y<-c(0, dt(seq(1.646, 3, 0.01), 1000), 0)
+curve(dt(x, 1000),xlim=c(-3,3),
+      main=expression(paste("Normal Density with"," ", t[alpha/2]=="0.05")) , ylab='', xlab='t value')
+polygon(cord.x, cord.y, col="red3")
+
+```
+
+
+```{r}
+plot(function(x) dt(x, df = 300), -3, 3, ylim = c(0, .5),
+     main = "t - Density", yaxs = "i", col="white",ylab="Density",
+     xlab=expression(paste(X  %~% tau[n])))
+curve(dt(x, df = 3),  -3,3, bty="l", col="blue", add=T,  lwd=2)
+curve(dt(x, df = 1),  -3,3, bty="l", col="black", add=T, lwd=2)
+curve(dt(x, df = 1000),  -3,3, bty="l", col="red", add=T, lwd=2)
+curve(dt(x, df = 15),  -3,3, bty="l", col="green", add=T, lwd=2)
+legend("topright", lty=c(1,1,1,1), lwd=c(2,2,2,2),
+       legend=c(expression(nu==1, nu==3, nu==15,nu==1000)),
+       col=c("black", "blue", "green","red"))
+
+```
+
+# 自由度
+迴歸模型的自由度代表有多少資訊可以用來估計係數，自由度越大，估計係數越穩定。
+自由度等於$n-k$，$n$代表觀察值，$k$代表係數。一般來說，每一個係數至少需要10到15個樣本（參考[Jim Frost](https://statisticsbyjim.com/regression/overfitting-regression-models/)）。
+如果樣本數太少、參數太多，那麼少數的樣本決定參數的大小，產生overfitting的問題。從有限的樣本所得到的參數，可能無法推論到母體。
+想像有20個樣本，我們可以計算平均數，再用$t$檢定檢驗是否等於某個數。但是如果我們把20個樣本分成兩群，分別計算平均數，再用$t$檢定檢驗是否等於某個數，我們分別剩下10個樣本給其中一組，任何樣本的偏差就會影響樣本統計。如果再分成3群、4群，自由度越來越小。迴歸模型也是如此。樣本數代表資訊，資訊夠多，得到的係數估計才會正確。
+
+## 檢定力(Power of test)
+因為$t=\frac{\hat{\beta}}{\sigma/\sqrt{n}}$，所以$t$值取決於：
+
+  - $\hat{\beta}$，也就是$X$與$Y$的相關，在實驗設計則是實驗分組的差異
+  - $\sigma$，也就是$Y$的變異程度(variability)。變異程度越大，$t$值越小。
+  - $1/\sqrt{n}$，樣本數越大，$t$值也越大。這是因為樣本數越大，越能偵測到$X$的效果。
+  
+以上三個因素與檢定力(statistical power)相關。檢定力可寫成Power=1-$\beta$。其中$\beta$代表Type II error的機率，也就是虛無假設不成立的條件下，但是不否定虛無假設。因此，檢定力代表正確地拒斥錯誤的虛無假設。如果$\beta=0.8$，代表有$80\%$的機會正確地發現事實上存在的作用。
+
+根據檢定力的概念，我們可以反推需要多少樣本數，才不會拒斥正確的虛無假設，或者拒斥錯誤的虛無假設。
+
+$\blacksquare$有關Type I跟Type II error可見Jim Frost (https://statisticsbyjim.com/hypothesis-testing/types-errors-hypothesis-testing/)。
+
+## $t$分佈的計算
+<li>過去我們需要翻書查看$t$值對應的百分比，現在用`R`計算$t$分布的百分位的機率，也可以計算機率對應的百分位。首先計算特定機率的百分位： </li>
+```{r}
+qtd <-data.frame(q_975=qt(0.950, 1000),
+                q_950=qt(0.975, 1000),
+                q_990=qt(0.990, 1000))
+newqtd <- qtd %>% kable("html") %>%
+  kable_styling(bootstrap_options = 'striped')
+newqtd
+```
+
+<li>其次，計算機率對應的百分位：</li>
+```{r}
+tt <- data.frame(p_168=pt(1.68, 1000), p_196=pt(1.96, 1000),                   p_300=pt(3.00, 1000)) 
+newtt <- tt %>% kable("html") %>%
+  kable_styling(bootstrap_options = 'striped')
+newtt
+```
+
+<hr>
+# 變數的淨作用
+假設迴歸模型為：\[Y=\beta_{0}+\beta_{1}X+\beta_{2}Z+\epsilon\] 
+
+估計的迴歸係數可寫成\[\hat{\beta}_{1}=\frac{\sum_{i}^{n}\hat{r}_{xz,i}y_{i}}{\sum_{i}^{n}\hat{r}_{xz,i}}\]
+
+其中$\hat{r}_{xz,i}$代表用$Z$預測$X$的殘差：
+\[X=\lambda+\delta\dot Z+r_{xz}\]
+
+也就是說，
+
+<li> $\delta$代表$X,Z$的相關程度</li>
+<li> $\hat{r}_{xz}$代表$X$與$Z$沒有相關的部份。</li>
+<li> $\hat{r}_{xz}$是$X$被$Z$解釋過後的部份，也就是\textcolor{blue}{淨作用}</li>
+<li> 所以$\hat{\beta}_{1}$代表$X$除去與$Z$相關部份之後的作用。</li>
+
+以`pscl`套件的**UKHouseOfCommons**為例，v2是工黨的得票率，v3是自由民主黨的得票率，labinc代表該選區現任者為工黨議員。
+先估計完整的複迴歸模型：
+```{r eval=FALSE}
+library(pscl); library(stargazer)
+m1<-lm(v2 ~ v3 + labinc , data=UKHouseOfCommons)
+stargazer(m1, type='html')
+```
+
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>v2</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">v3</td><td>-0.998<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.041)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">labinc</td><td>0.206<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.009)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>0.495<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.010)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>521</td></tr>
+<tr><td style="text-align:left">R<sup>2</sup></td><td>0.770</td></tr>
+<tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.769</td></tr>
+<tr><td style="text-align:left">Residual Std. Error</td><td>0.085 (df = 518)</td></tr>
+<tr><td style="text-align:left">F Statistic</td><td>865.698<sup>***</sup> (df = 2; 518)</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+估計得到的模型可寫成：
+\[v2=0.495-0.998\cdot \mathrm{v3}+0.206\cdot \mathrm{labinc}\]
+
+分別估計第二個自變數預測第一個自變數的模型，把殘差值存起來，預測原來的依變數。
+```{r eval=FALSE}
+library(pscl)
+m2 <- lm(v3 ~  labinc , data=UKHouseOfCommons)
+resd.m2 <- residuals(m2)
+m3 <- lm(v2 ~ resd.m2, data=UKHouseOfCommons)
+stargazer(m3, type='html')
+```
+<table style="text-align:center"><tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="1" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>v2</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">resd.m2</td><td>-0.998<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.073)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>0.361<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.007)</td></tr>
+<tr><td style="text-align:left"></td><td></td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>521</td></tr>
+<tr><td style="text-align:left">R<sup>2</sup></td><td>0.263</td></tr>
+<tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.261</td></tr>
+<tr><td style="text-align:left">Residual Std. Error</td><td>0.153 (df = 519)</td></tr>
+<tr><td style="text-align:left">F Statistic</td><td>184.956<sup>***</sup> (df = 1; 519)</td></tr>
+<tr><td colspan="2" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+估計結果為：
+
+\[v3=0.361-0.998\cdot \mathrm{residual\hspace{.1cm}of\hspace{.1cm}model\hspace{.1cm}2}\]
+
+得到的係數等於複迴歸模型的第一個迴歸係數。這說明第一個自變數的係數代表去掉第二個自變數作用的淨作用。
+
+<hr>
+<h2>例題一</h2>
+請問大學教師的薪水與性別有關嗎？使用`car`裡面的`Salaries`資料：
+```{r}
+library(car)
+fit1 <- with(Salaries, lm(salary ~ sex))
+summary(fit1)
+```
+
+1. 當教師為男性，平均薪水為101003+14088=115090，當教師為女性，平均薪水為101002。
+2. 性別的迴歸係數$t$值為2.782，因為
+\[
+\frac{14088}{5065}=2.78
+\]
+3. 當$t$=2.78，我們想知道對應到的機率值有多高？如果小於虛無假設的機率值，也就是我們觀察到虛無假設成立的機會非常小，也就是我們可以拒斥虛無假設。
+```{r}
+h0=1-pt(1.96, 395)
+h1=1-pt(2.78, 395)
+h0; h1
+```
+<li>因此，我們可以拒斥兩者無關的虛無假設，並且得到性別會決定教師薪水的結論。</li>
+
+<h2>例題二</h2>
+請問氣溫與風力大小、月份有關嗎？我們分析`airquality`資料：
+```{r}
+fit2 <- with(airquality, lm(Temp ~ Wind+factor(Month)))
+summary(fit2)
+```
+
+1. 風力每增加一個單位，溫度減少0.7434個單位。標準誤為0.1488。$t$值為-4.996，拒斥風力與氣溫沒有關係的虛無假設。  
+2. 相對於五月，六月的溫度增加12.5436度。標準誤為1.5943。  
+
+
+<hr>
+# 作業
+<p1>
+1. 請根據以下的公式，計算$\beta_{1}$以及標準誤。  
+\[
+\hat{\beta_{1}}=\frac{\sum (x_{i}-\bar{x})(y_{i}-\bar{y})}{\sum(y_{i}-\bar{y})^2}
+\]
+\[
+\sigma^2=\frac{\Sigma(y-\hat{y})^2}{n-2}
+\]
+\[
+\mathrm{SE}(\hat{\beta_{1}})=\sqrt{\frac{\sigma^2}{\sum(x_{i}-\bar{x})^2}}
+\]
+</p1>
+
+```{r}
+library(kableExtra)
+DT<-data.frame(X=c(4, 3, 5, 2, 4, 2, 2, 3, 2, 2, 2, 3, 5, 1, 1),
+               Y=c(5, 5, 5, 3, 4, 3, 3, 4, 4, 5, 4, 5, 3, 2, 1))
+DT %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = 'striped')
+```
+
+```{r include=FALSE}
+# X- X mean; Y - Y mean
+cov=sum((DT$X-mean(DT$X))*(DT$Y-mean(DT$Y)))
+vari = sum((DT$X-mean(DT$X))^2)
+b1 <- cov/vari
+b0 <- mean(DT$Y) - b1*mean(DT$X)
+b0; b1
+n = nrow(DT)
+b1.sigma <- sum((DT$Y-b0-b1*DT$X)^2)/(n-2)
+b1.se <- sqrt(b1.sigma/vari)
+b1.se
+#double-check
+m1 <- with(DT, lm(Y ~ X)); summary(m1)
+```
+
+<p1>
+2. 接續上一題，如果增加了以下五筆資料，請重新估計迴歸模型：</p1>
+```{r}
+DT2<-data.frame(X=c(2, 1, 3, 4, 5),
+               Y=c(3, 4, 5, 4, 4))
+DT2 %>%
+  kable("html") %>%
+  kable_styling()
+```
+
+```{r include=FALSE}
+newDT<-data.frame(x=c(DT$X, DT2$X), y=c(DT$Y, DT2$Y) )
+M1<-with(newDT, lm(y ~ x))
+summary(M1)
+```
+
+<p1>
+3. 假設$z$值為標準化常態分佈下、累積機率為$2.5\%$對應的數值。如果我們從標準化常態分佈抽出一定的數，請問
+$p(-z_{\alpha/2}\cdot \sigma/\sqrt{n}\le \mu \le z_{\alpha/2}\cdot \sigma/\sqrt{n})$這個區間裡面包含的個數佔所有抽出樣本的比例：（提示：假設$\sigma^2=1$、$\alpha=0.05$。請設定隨機亂數的起始值，例如set.seed(110)）</p1>
+```{r include=F}
+set.seed(116)
+Y<-rnorm(500, 0, 1)
+z = qnorm(.975,0,1)
+sigma = 1
+n = length(Y)
+sum( -z*sigma <Y & Y< z*sigma)/n
+```
+<p1>
+4. 請用迴圈從$t$分佈與常態分佈分別抽出20個與2000個樣本，然後用箱形圖表示抽樣所得的平均數分佈，並說明兩者的差異。</p1>
+
+```{r include=F}
+set.seed(1111)
+res.mean1=c();res.mean2=c() # initialize
+samples = 2000
+for(i in 1:samples) { # create 200 random samples + X = rnorm(200,0,1)
+X1 = rt(100, 1000)
+X2 = rnorm(100,0,1)
+   res.mean1[i] = mean(X1); res.mean2[i] = mean(X2)
+}
+boxplot(res.mean1,res.mean2) 
+dt <- tibble(Distribution=c(rep('T', samples), rep('Normal', samples)),  Mean=c(res.mean1, res.mean2))
+library(ggplot2)
+ggplot(dt, aes(Distribution, Mean, col=Distribution)) +
+   geom_boxplot()  +
+   ggtitle("2000 samples")
+
+samples=20
+res.mean1=c();res.mean2=c() # initialize
+for(i in 1:samples) { # create 20 random samples 
+ X1 = rt(100, 1000)
+ X2 = rnorm(100,0,1)
+   res.mean1[i] = mean(X1); res.mean2[i] = mean(X2)
+ }
+
+dt <- tibble(Distribution=c(rep('T', samples), rep('Normal', samples)),  Mean=c(res.mean1, res.mean2))
+
+ggplot(dt, aes(Distribution, Mean, col=Distribution)) +
+   geom_boxplot()   +
+   ggtitle("20 samples")
+# When the number of samples gets larger, the t distribution is closer to the normal distribution.
+```
+
+<p1>
+5. 學者估計國家的經濟水準與宗教對於民主程度的影響，得到迴歸模型表示如下：
+\begin{align*}
+Y_{i} & =\hat{\beta}_{0}+\hat{\beta}_{1}X_{1}+\hat{\beta}_{2}X_{2}+\hat{\beta}_{3}X_{1}X_{2}+u\\
+& =-1.6+1.9X_{income}+5.1X_{Muslim}-2.2X_{income}X_{Muslim}
+\end{align*}
+\begin{equation*}
+X_{Muslim} =\begin{cases}
+1 & \text{該國信奉伊斯蘭教} \\
+0 & \text{其他}
+\end{cases}
+\end{equation*}
+
+<p1> 5.1 請問非伊斯蘭教國家的預測模型為何？</p1>
+```{r eval=FALSE, echo=FALSE}
+$\hat{y}=-1.6+1.9X_{1}$
+```
+
+ <p1>5.2 請問伊斯蘭教國家的預測模型為何？</p1>
+```{r eval=FALSE, echo=FALSE}
+$\hat{y}=3.6-.3X_{1}$
+```
+ 
+ <p1>5.3 請問$\hat{\beta}_{1},\hspace{.2cm} \hat{\beta}_{2}$分別代表什麼意義？</p1>
+```{r eval=FALSE, echo=FALSE}
+$\hat{\beta}_{1}$代表非伊斯蘭國家的斜率，$\hat{\beta}_{2}$是兩個截距之間的距離
+```
+
+
+# 更新日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

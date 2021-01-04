@@ -1,0 +1,104 @@
+---
+title: "機率、間斷與連續變數介紹（習題解答）"
+author:
+  - 蔡佳泓
+date: 2/25/2020
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  includes:    
+    in_header: header.tex
+classoption: "hyperref,"
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+\listoftables
+\listoffigures
+\end{center}
+
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "left")
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+
+#習題解答
+
+ 1.  **現代統計學**習題 6.4
+
+$E(Y)=1\times \frac{1}{2}+4\times \frac{1}{4}+9\frac{1}{8}+16\frac{1}{8}=4.625$
+
+答：$V(Y)=1^2\times \frac{1}{2}+4^2\times\frac{1}{4}+9^2\frac{1}{8}+16^2\frac{1}{8}-4.625^2=25.23$
+
+ 2. 設隨機變數$X$，機率分配如表 \ref{tab:probdis}：
+ 
+\begin{table}[h!]
+\centering
+\caption{隨機變數的機率分配}\label{tab:probdis}
+\begin{tabular}{l | l | l | l | l | l }
+\hline
+x & 1 & 2 & 3 & 4 & 5 \\
+\hline
+f(x) & 5P &  5P &  2P & 3P &  5P \\
+\hline
+\end{tabular}
+\end{table}
+
+請問$X$的期望值、變異數分別是多少？
+
+$\sum f(x)= 20p=1 \quad p=0.05$
+
+$E(X)=\sum xf(x)=1\times 5p+2\times 5p+,...+ 5\times 2p= 2.9$
+
+$E(X^2)=\sum x^2f(x)=1\times 0.25+4\times 0.25+,...+25\times 0.25= 10.8$
+
+```rmarkdown
+# a<-c(1,4,9,16,25)
+# b<-c(0.25,0.25,0.1,0.15,0.25)
+# a%*%b
+```
+
+答：$V(X)=E(X^2)-[E(X)]^2=10.8-2.9^2=2.39$
+
+ 3. **現代統計學**習題 6.6
+
+
+$E(X)=20\times 0.5+...90\times 0.05=58$.
+
+$E(X^2)=20^2\times 0.5+...90^2\times 0.05=3,690$
+
+答：$V(X)=E(X^2)-[E(X)^2]=326$
+
+
+ 4. 假設有兩成的新聞是假新聞，當我們抽出300篇新聞，請問有幾篇會是假新聞？
+
+
+答：因為是二項分布，所以當$p=0.4$，實驗次數 $n$ = %300，期望值為$300*0.4=120$
+
+
+
+ 5. **現代統計學**習題 7.4 （提示：可以用`R`的integrate函數）
+
+
+答：(1)不是連續函數(2)是連續函數
+
+# 更新內容日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

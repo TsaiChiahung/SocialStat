@@ -1,0 +1,533 @@
+---
+title: "機率、間斷與連續變數介紹"
+author:
+  - 蔡佳泓
+date: 2/25/2020
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  includes:    
+    in_header: header.tex
+classoption: "hyperref,"
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+\listoftables
+\listoffigures
+\end{center}
+
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "left")
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+我們想要知道某件事情發生的機率，例如棒球選手打出安打的機率、通過律師高考的機率、坐飛機失事的機率等等。通常我們想像中安打機率的算法是棒球選手上場若干次，其中有幾次打出安打，兩者相除得到一個介於0與1的數字。我們假設每個球員上場都全力揮棒，也沒有四壞球，也沒有防守失誤，因此可以把分母簡單改寫為安打、出局兩種，也就是：
+\[\rm{AB}=\frac{Hit}{Hit+Out}\]
+
+因此，當每一位球員不是安打就是出局，打擊變成一種隨機變數，這個變數只有兩種可能的數值，安打或者出局。每一位球員上場時，打出安打的機率最高是1，最低是0，我們可以統計每位球員有多少次安打、多少次出局，如果上場10次，其中4次安打、其他出局，打擊率就是：
+
+$$\frac{4}{(4+6)}=0.4$$
+
+當四成打擊率的球員上場時，我們預期他有四成的可能性會打出安打上壘。當他連續打出好幾支安打之後上場時，我們預期他打出安打的機會應該不會到四成，但是究竟是多少？可能要考慮過去他在前面打出安打的條件下，再打出安打的次數。如果我們收集了這位球員每次打擊的結果以及每次打擊時的體能、投手球路、壘上有多少跑者(0-3)、哪一局上場(1-9)等等資料，我們就可以預測長期而言，這位球員在各種條件下的打擊結果。如果我們收集了每位球員的球員生涯的打擊成績、當時平均的投手成績（例如被打擊率）、球場的溫濕度（濕度高的球場通常球飛不遠）等等，我們也可能預測在各種條件下，一般球員的打擊成績。
+
+
+\vspace{1em}
+\noindent
+$\blacksquare$請問你可以舉出其他機率的例子嗎？
+
+\noindent
+$\blacksquare$請問你可以用籃球為例想像投籃命中率的變數嗎？
+
+\noindent
+$\blacksquare$請問目前的武漢肺炎疫情，感染的機率約為多少？
+
+
+# 隨機變數
+隨機變數一般以大寫字母$X$表示，可能的數值以小寫字母表示$x$，例如丟硬幣兩次，我們有$\{$(正、反)，(反、正)，(正、正)，(反、反) $\}$四種情形，這四種情形出現的相對次數應該都相同。不過，如果我們的變量是出現正面的次數$\{0, 1,2\}$三種，那麼可以想像，0跟2的相對次數比較少，1比較多。
+
+\begin{table}
+\centering
+\caption{兩枚硬幣投擲結果與正面次數}
+\begin{tabular}{l | r | r}
+\toprule
+ 結果& 正面次數  & 相對次數  \\
+\midrule
+ (T,T)& 0  & 0.25  \\
+\midrule
+ (T,H)&  1&  0.25\\
+\midrule
+(H,T)&  1&  0.25\\
+\midrule
+ (H, H)&  2&  0.25\\
+\bottomrule 
+\end{tabular}
+\end{table}
+
+這裡要強調「相對次數」而不是「原始次數」。相對次數是某一個情形發生次數除以總共發生次數。以上面的例子為例，原始次數並不一定會如同預期的1會出現最多而0跟2會出現最少，但是如果我們一直丟兩枚硬幣，可以預期1會出現50\%，而0 跟 2只會出現25\%。
+
+隨機變數可依照變量是否可數分為間斷(discrete)變數以及連續(continuous)變數。我們必須了解隨機變數的期望值以及變異數。
+
+# 間斷變數
+常見的間斷或者不連續變數有：天數、銷售量、人數、0或1等等。
+
+## 間斷變數的期望值與變異數
+### 期望值
+間斷變數的期望值$E(X)$可以表示如下：
+\begin{center}
+$\boxed{E(X)=\sum_{i=1}^n x_{i}f(x_{i})=\mu}$
+\end{center}
+
+$x_{i}$等於變量，而$f(x_{i})$代表$x_{i}$變量對應的機率。
+
+以表1為例，計算丟擲兩枚硬幣出現正面的期望值。計算結果應為1。也就是說，我們預期出現正面的次數為1。
+
+\begin{table}
+\centering
+\caption{兩枚硬幣投擲結果之期望值}
+\begin{tabular}{l | r | r}
+\toprule
+ 正面次數(變量)$x$  & 相對次數或機率函數$f_(x_{i})$ &  $x_{i}f_(x_{i})$  \\
+\midrule
+  0  & 0.25 & 0  \\
+\midrule
+   1&  0.5 & 0.5\\
+\midrule
+  2&  0.25 & 0.5\\
+\midrule
+ Sum & $\sum =1$ & $\sum x_{i}f_(x_{i})$=1\\
+\bottomrule 
+\end{tabular}
+\end{table}
+
+
+假設丟兩枚硬幣時，兩枚硬幣朝正面的機會互相獨立，我們用`R`模擬從兩個集合$\{0,1\}$各抽樣1000次，然後加總抽樣結果，並且畫成圖如下：
+
+```{r, fig.cap='丟兩枚硬幣1000次的正面次數長條圖'}
+a<-c(0,1)
+sample.1 <- 0; sample.2 <- 0
+sum <- 0
+set.seed(02138)
+for (i in 1:1000){
+  sample.1[i]=sample(a,1)
+}
+set.seed(02139)
+for (i in 1:1000){
+  sample.2[i]=sample(a,1)
+}
+sum <- sample.1 + sample.2
+print(mean(sum))
+table(sum)
+hist(sum)
+```
+
+從上面的語法以及長條圖可以發現，丟兩枚硬幣1000次的平均值接近1，出現1（一正一反）的次數接近500次，0跟2大約是250次。
+
+### 變異數
+間斷變數的變異數$V(X)$可以表示如下：
+\begin{center}
+$\boxed{V(X)=\sum_{i=1}^n (x_{i}-\mu)^2f(x_{i})}$
+\end{center}
+
+上面的變異數公式可以改寫為：
+
+\begin{align}
+V(X) & =\sum_{i=1}^n (x_{i}-\mu)^2f(x_{i})\nonumber \\
+& = \sum_{i=1}^n x_{i}^2f(x_{i})-\mu^2
+\end{align}
+
+或者
+
+\begin{center}
+$\boxed{V(X)=E[(x_{i}-\mu)]^2=E(X^2)-[E(X)]^2}$
+\end{center}
+
+延續表2，我們需要計算$x_{i}^2f(x_{i})$，就能計算變異數，以表3表示：
+
+\begin{table}
+\centering
+\caption{兩枚硬幣投擲結果之變異數}
+\begin{tabular}{l | r | r}
+\toprule
+ 正面次數(變量)$x$  & 相對次數或機率函數$f_(x_{i})$ &  $x_{i}^2f_(x_{i})$  \\
+\midrule
+  0  & 0.25 & 0  \\
+\midrule
+   1&  0.5 & 0.5\\
+\midrule
+  2&  0.25 & 1\\
+\midrule
+ Sum & $\sum =1$ & $\sum x_{i}^2f_(x_{i})$=1.5\\
+\bottomrule 
+\end{tabular}
+\end{table}
+
+變異數為：
+
+\begin{align*}
+V(X) & =\sum_{i=1}^n (x_{i}-\mu)^2f(x_{i}) \\
+& = \sum_{i=1}^n x_{i}^2f(x_{i})-\mu^2 \\
+& = (0+0.5+1)-1 \\
+& = 0.5
+\end{align*}
+
+我們可以用`R`模擬的結果驗證，計算上述抽樣得到的結果為：
+
+```{r}
+var(sum)
+```
+
+間斷變數的函數稱為Probability Mass Function (PMF)，可以寫成：
+$$f(x)=P(X=x)$$
+$$0\le P(X=x)\le 1$$
+
+而且
+
+$\sum_{i}f(x_{i})=1$
+
+間斷變數常用的機率分配有：二元（白努利）分佈、Poisson分佈、超幾何分佈等等。$P(X=1)=p$、$P(X=0)=1-p$，機率密度函數寫成：
+$$p(X=x)=p^x(1-p)^{1-x}$$
+
+$x$只有0, 1。當$x=1$，$p(X=1)=p$。當$x=0$，$p(X=0)=1-p$。我們可以求出二元分布的平均值為$p$，變異數為$p(1-p)$。
+
+假如已知某個事件為真的機率為$p$，我們進行$n$次抽樣，其中$k$次得到某事件為真，該隨機變數服從二項分布(Binomial distribution)。二項分布的機率質量函數寫成：
+
+$p(X=k)= \binom{n}{k}p^k(1-p)^{n-k}=\frac{n!}{(n-k)!}p^k(1-p)^{n-k}$
+
+考慮警察隨機攔檢車輛 6次，假設出現酒駕的機率為$p=1/10$，且假設攔檢結果彼此互相獨立，
+6次當中出現1次酒駕的機率質量函數為$$P(X=1)=\binom{6}{1}0.1^1(1-0.1)^{6-1}$$
+6次當中出現2次酒駕的機率質量函數為$$P(X=2)=\binom{6}{2}0.1^2(1-0.1)^{6-2}$$
+
+二項分布的期望值剛好是二元分佈的期望值的$n$倍，$n$是實驗的次數，所以寫成$E(X)=np$。而變異數$V(X)=np(1-p)$。
+
+# 連續變數
+收入、溫度、時間、距離等等是常見的連續變數，因為這些變數的個數是無限而且不可數。
+
+連續變數常用的機率分配有：常態分佈、標準常態分佈、均等分佈、指數分佈等等。
+
+定義：連續變數\textit{f}，其值落在$[a, b]$，如果此函數非負而且在區間$[a, b]$連續，而且如果
+$\int_a^b f(x) \, dx=1$，則$f(x)$為$X$的機率密度函數(probability density function, pdf)。
+
+用$X$代表變數，$X$可能是某一個整數($0,1,2,\ldots,100$)，或者無理數($\frac{1}{\sqrt{10}}$)，我們想像每一個變數的值有若干機率，假設有$101$個值，機率可以寫成
+
+$\rm{Pr}(X=i)=\frac{1}{101}$\quad for $i=0,1,\ldots,100$
+
+如果$x$超過100，那麼變數$X$不可能是$x$，換句話說，
+
+$\rm{Pr}(X=x)=0$\quad if $x$ is not in $\{1,\ldots,n\}$
+
+如果$x\in(0,1)$，也就是在0跟1之間，也就是說$0\le x\le 1$，那麼當$x>1$，$Pr(X=x)=0$；當$x<0$，$Pr(X=x)=0$。
+
+不僅如此，我們可以說$Pr(X=x)=0$，這是因為在連續變數中，我們很難找到$x$剛好等於某一個實數，或者說一條直線的面積是0。但是我們可以用積分計算包含一個區間的面積，也就是$Pr(a\le X\le b)$。
+
+$f(x)$是一個機率分佈(Probability distribution)，而不是固定的數字，$f(x)$與$X$這兩者之間的關係稱為機率密度(probability density)。進一步假設$x$位於一個區間$I$，這個區間的大小以及密度$f(x)$決定變數$X$的值落在這個區間的機率，表示成：
+
+$\rm{Pr}(X\in I)\approx f(x)\times \rm{Length\hspace{.5em} of \hspace{.5em}I}$
+
+我們從常態分佈中抽出1,000個值，然後畫長條圖如圖 \ref{fig:hist1}。注意兩個圖有不同的縱軸：
+
+
+```{r, fig.cap="\\label{fig:hist1}單位與實數組距的長條圖", warning=FALSE, fig.showtext=TRUE}
+set.seed(2020)
+extmp<-rnorm(mean=10, sd=1, 1000)
+par(mfrow=c(1,2))
+barplot(table(cut(extmp, 15))/1000, ylab="相對次數",main="圖1", family="YouYuan")
+hist(extmp, main="圖2", freq = F, ylab="相對次數密度", family="YouYuan")
+```
+
+
+假設我們相信$X$可能落在某一個範圍內，例如稱作$A$，$A$從a, b，也就是把a到b的區域的$f(x)$加總起來：
+
+$$\rm{Pr}(x \in A) =\int_{A}p(x)dx=\int_{a}^{b}p(x)dx$$
+
+例如有一個機率分佈(probability distribution)如圖 \ref{fig:prodis}，可以用積分求0到1之間曲線底下的面積，得到$0\le x\le 1$的機率：
+```{r, fig.cap="\\label{fig:prodis}機率分佈曲線下的區域", fig.showtext=TRUE, warning=F}
+par(family="YouYuan" )
+#x <- seq(-3, 3,0.1)
+curve( dnorm(x),
+       xlim = c(-2, 3.5),
+       ylab = "Density", 
+       main = "機率密度與區域",
+       col='red', lwd=2)
+cord.1x <- c(0,seq(0,1,0.01),1) 
+cord.1y  <- c(0,dnorm(seq(0,1,0.01)),0) 
+# Make a curve
+#curve(dnorm(x,0,1), xlim=c(-3,3), main='Standard Normal',lwd=2) 
+# Add the shaded area.
+polygon(cord.1x,cord.1y,col='grey80')
+```
+
+## 連續變數的機率分佈
+
+\noindent
+$\blacksquare$一致機率(Uniform distribution)的密度函數是：
+\begin{equation*}
+f(x) =
+\begin{cases}
+ \frac{1}{b-a} & a\le x\le b\\
+  0 & \text{otherwise}
+\end{cases}
+\end{equation*}
+
+圖 \ref{fig:uniarea} 顯示一致機率分佈曲線下的區域：
+
+```{r, fig.cap="\\label{fig:uniarea}一致機率分佈曲線下的區域", fig.showtext=TRUE, warning=F}
+x<-seq(from=-1,to=4,length.out=1000)
+ylim<-c(0,0.6)
+plot(x,dunif(x,min=0,max=2),main=" ",type="l",ylim=ylim)
+```
+
+一致機率的期望值為：
+
+\[\boxed{E(X)=\frac{a+b}{2}}\]
+
+變異數為：
+
+\[\boxed{V(X)=\frac{(b-a)^2}{12}}\]
+
+\noindent
+$\blacksquare$常態隨機變數是大家所熟知的隨機變數之一，人的身高、智商、成績等等，大都呈現常態機率分佈。
+
+常態分配的定義是：當隨機變數$X$，機率密度函數為
+$$f(x)=\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x-\mu)^2}{2\sigma^2}}$$，則$f(x)$為常態分配。
+
+常態隨機變數的參數有兩個：平均數$\mu$以及變異數$\sigma^2$。如果$\sigma=1$而 且$\mu=0$，稱為標準常態分配。
+
+圖 \ref{normal} 呈現三種 $\sigma$ 的常態分佈，黑色的是 $\sigma=1$，紅色的是 $\sigma=1.4$，藍色是 $\sigma=2$。
+
+```{r, fig.cap="\\label{fig: normal}常態機率分佈", fig.showtext=TRUE, warning=F}
+x<-seq(from=-3, to=3,length.out=1000)
+s=1
+y <- (1/sqrt(2*pi)*s)*(exp(-x^2/2*s^2))
+ylim<-c(0, 0.85)
+plot(x, y ,main=" ", cex=0.1, ylim=ylim)
+s=1.4
+curve((1/sqrt(2*pi)*s)*(exp(-x^2/2*s^2)), from=-4, to=4, col="#CC2233FF",
+      add=T)
+s=2
+curve((1/sqrt(2*pi)*s)*(exp(-x^2/2*s^2)), from=-3, to=3, col="blue",
+      add=T)
+```
+
+
+累積機率密度顯示在圖 \ref{fig: cdf}。隨著$x$增加，累積的機率密度也從接近0一直增加，但是到了一定的高度，累積速度減慢，一直到接近1.0。
+```{r, fig.cap="\\label{fig: cdf}累積機率密度圖", showtext=T}
+x <-seq(from=-3, to=3, 0.01)
+y<-c()
+f.normal <- function(x) {
+  y <- 1/(sqrt(2 * pi)) * exp(-0.5 * x^2)
+}
+
+plot(x, cumsum(f.normal(x))/100, cex=0.2)
+```
+
+也可以用如\texttt{R}提供的函數畫累積密度曲線，如圖 \ref{fig: pnorm}。當$x=0$，也就是平均數，累積密度等於0.5。
+
+```{r, showtext=T, fig.cap="\\label{fig: pnorm}R函數之累積密度曲線圖"}
+curve(pnorm, from=-3, to=3, col='#EE11CCFF', lwd=1.5)
+segments(0, -0.03, 0, 0.5, lty=2, lwd=1.5)
+segments(-3.5, 0.5, 0, 0.5, lty=2, lwd=1.5)
+```
+
+理論上，我們不知道隨機變數的機率分佈，因為我們不可能知道隨機變數的每一個值。但是我們假設隨機變數屬於某種機率分佈，例如常態分佈，這樣我們就可以根據函數以及變量，計算平均值與變異數。
+
+## 連續變數的期望值與變異數
+
+### 期望值
+連續變數的期望值表示如下：
+
+\[\boxed{E(X)=\int_{a}^{b}xf(x)dx=\mu} \]
+
+在間斷變數的例子，變數有個別的變量，例如$X$有四個可能的值1, 2, 3, 4，發生的機率如表 \ref{tab: ex_4values}：
+\begin{table}[p!]
+\centering
+\caption{四種可能的值}
+\label{tab: ex_4values}
+\begin{tabular}{l l l l l}
+\hline
+X & 1 & 2 & 3 & 4 \\
+p & 0.1 & 0.3 & 0.4 & 0.2 \\
+\hline
+\end{tabular}
+\end{table}
+
+把表\ref{tab: ex_4values}畫成直條圖\ref{fig: pmf1}，縱軸是相對次數，每一個變量都會對應相對次數，也就是$f(X=x)=P(X=x)$。但是連續變數$f(x)$代表$x$的機率密度並非機率，曲線底下的區間面積才是機率。換句話說，我們必須計算區域面積。
+
+```{r, fig.cap="\\label{fig: pmf1}間斷變數之相對次數圖", fig.showtext=TRUE, warning=F}
+tmp <- c(rep(1,1), rep(2, 3), rep(3,4), rep(4,2))
+ttmp <- table(tmp/10)
+names(ttmp)<-c(1,2,3,4)
+barplot(ttmp, col='#cc002233')
+```
+
+圖 \ref{fig:carat} 顯示連續變數--鑽石克拉數--的分佈圖。我們用\texttt{ggplot2}套件以及基本功能繪圖。
+
+```{r echo=T, message=FALSE, warning=FALSE, fig.cap="\\label{fig:carat}鑽石克拉數長條圖"}
+require(ggplot2)
+qplot(carat, data = diamonds, geom = "histogram")
+hist(diamonds$carat, freq=F, main="")
+```
+
+\vspace{3em}
+接下來我們用一個連續函數為例說明。
+
+\noindent
+$\blacksquare$某家工廠的產量為連續函數
+\[ f(t)=\frac{1}{36}(-t^2 + 6t)\]，要求出$2\leq t\leq 4$的機率，則：
+
+\begin{equation*}
+\begin{split}
+p(2\leq t\leq 4) & = \frac{1}{36}\int_2^4(-x^2+6x)\, dx  \\
+& = \frac{1}{36}(-\frac{4^3}{3}+\frac{1}{2}(6\cdot 4^2)-(-\frac{2^3}{3}+\frac{1}{2}(6\cdot 2^2)))\\
+& = \frac{1}{36}(-\frac{64}{3}+48+\frac{8}{3}-12)\\
+&=\frac{13}{27} \\
+&\approx 0.481
+\end{split}
+\end{equation*}
+
+畫圖如下。圖 \ref{fig: continous1} 顯示四種大小不同的$x$變量，：
+
+```{r, fig.cap="\\label{fig: continuous1}連續變數之機率密度圖", fig.showtext=TRUE, warning=F}
+par(mfrow=c(2,2))
+x<-seq(from=-2, to=6, length.out = 1000)
+y=(1/36)*(-(x^2)+6*x)
+plot(x, y, ylim=c(0, 0.3), lwd=1, cex=0.1)
+x<-seq(from=0, to=6, length.out = 1000)
+y=(1/36)*(-(x^2)+6*x)
+plot(x, y, ylim=c(0, 0.3), lwd=1, cex=0.1)
+x<-seq(from=1, to=6, length.out = 1000)
+y=(1/36)*(-(x^2)+6*x)
+plot(x, y, ylim=c(0, 0.3), lwd=1, cex=0.1)
+x<-seq(from=3, to=6, length.out = 1000)
+y=(1/36)*(-(x^2)+6*x)
+plot(x, y, ylim=c(0, 0.3), lwd=1, cex=0.1)
+```
+
+我們畫出其中一個曲線底下$2\le x\le 4$的區域（圖 \ref{fig: continuous2}）：
+
+```{r, fig.cap="\\label{fig: continuous2}機率密度圖的區域", fig.showtext=TRUE, warning=F}
+x<-seq(from=-1, to=6, length.out = 1000)
+y=(1/36)*(-(x^2)+6*x)
+plot(x, y, ylim=c(0, 0.3), lwd=1, cex=0.1)
+cord.1x <- c(2, seq(2,4,0.01), 4)
+cord.1y  <- (1/36)*(-(cord.1x^2)+6*cord.1x)
+cord.1y[1]<-0; cord.1y[203]<-0
+polygon(cord.1x,cord.1y,col='grey80')
+```
+
+\textrm{在圖\ref{fig: continuous2}中的區域的底是2，高是0.2，所以大概是$2\times 0.2$加上弧形的部分。}\texttt{R}\textrm{提供積分以及微分的功能，在此我們用積分計算$\int_{2}^{4}f(x)dx$，也就是$F(4)-F(2)$如下：}
+
+```{r}
+F <- function(x) (1/36)*(-(x^2)+6*x)
+integrate(F, 2, 4)
+```
+
+得到的結果跟我們自行計算一樣為0.481。也就是說，$2\le x\le4$的機率為$48.1\%$，接近五成。要注意的是，期望值公式為
+
+\[\boxed{E(X)=\int_{a}^{b}xf(x)dx=\mu} \]
+
+針對常態分佈，我們可以用教科書後面的附表計算機率密度曲線特定區域的面積，也就是機率，也可以用Excel計算，還可以用\texttt{R}計算。
+
+### 變異數
+
+變異數計算方式為：
+\begin{align}
+V(X)=\int_{a}^{b}(x-\mu)^2\cdot f(x)dx 
+\label{eq:continousvariance}
+\end{align}
+
+方程式 \ref{eq:continousvariance}可以改為：
+
+\begin{align*}
+V(X) & =\int_{a}^{b}(x-\mu)^2\cdot f(x)dx \\
+& = \int_{a}^{b}x^2\cdot f(x)dx-\mu^2  \\
+& = E(X^2) -[E(X)]^2
+\end{align*}
+
+$\blacksquare$假設有一個連續函數如下：
+
+\begin{equation*}
+  f(x) =
+    \begin{cases}
+      2(1-x) & \text{if}\hspace{1em} 0\le x\le 1\\
+      0 & \text{otherwise}
+    \end{cases}       
+\end{equation*}
+
+首先我們先確認$\int_{0}^{1}f(x)dx=1$
+
+```{r}
+f<-function(x)2*(1-x)
+integrate(f, 0, 1)
+```
+
+然後根據期望值公式：
+
+\[\boxed{E(X)=\int_{a}^{b}xf(x)dx=\mu} \]
+
+\begin{align*}
+E(X) & =\int_{0}^{1}x[2(1-x)]dx \\ 
+    & = 2\int_{0}^{1}(x-x^2)dx \\
+    & = 2[(\frac{1^2}{2}-\frac{1^3}{3})- (\frac{0^2}{2}-\frac{0^3}{3})] \\
+    & = 1/3
+\end{align*}
+
+接下來計算變異數，公式為：
+
+$$\boxed{V(X) =\int_{-\infty}^{\infty}(x-E(X))^2\cdot f(x)dx}$$
+\begin{align*}
+V(X) & = \int_{0}^{1}(x-\frac{1}{3})^2\cdot 2(1-x)dx \\
+  & = 2\int_{0}^{1}(x^2-\frac{2}{3}x+\frac{1}{9})\cdot (1-x)dx \\
+  & = 2(-\frac{1}{4}x^4+\frac{5}{9}x^3-\frac{7}{18}x^2+\frac{1}{9}x)\Biggr|_{0}^{1} \\
+  & = \frac{1}{18}
+\end{align*}
+
+\newpage
+
+# 作業
+
+ 1.  **現代統計學**習題 6.4
+
+ 2. 設隨機變數$X$，機率分配如表 \ref{tab:probdis}：
+ 
+\begin{table}[h!]
+\centering
+\caption{隨機變數的機率分配}\label{tab:probdis}
+\begin{tabular}{l | l | l | l | l | l }
+\hline
+x & 1 & 2 & 3 & 4 & 5 \\
+\hline
+f(x) & 5P &  5P &  2P & 3P &  5P \\
+\hline
+\end{tabular}
+\end{table}
+
+請問$X$的期望值、變異數分別是多少？
+
+ 3. **現代統計學**習題 6.6
+ 
+ 4. 假設有兩成的新聞是假新聞，當我們抽出300篇新聞，請問有幾篇會是假新聞？
+
+ 5. **現代統計學**習題 7.4 （提示：可以用`R`的integrate函數）
+
+
+# 更新內容日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

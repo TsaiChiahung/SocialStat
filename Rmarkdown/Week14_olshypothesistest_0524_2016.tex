@@ -1,0 +1,525 @@
+\documentclass[xcolor=dvipsnames]{beamer}
+\usepackage{amsfonts, epsfig, xspace, relsize}
+\usepackage{algorithm,algorithmic, graphicx}
+\usepackage{pstricks,pst-node}
+\usepackage{multimedia}
+\usepackage{enumerate}
+\usepackage[normal,tight,center]{subfigure}
+\setlength{\subfigcapskip}{-.5em}
+\usepackage{beamerthemesplit}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{fancyvrb}
+\usepackage{framed,color}
+\definecolor{shadecolor}{rgb}{0.8,1,0.5}
+\usepackage{amsmath}% http://ctan.org/pkg/amsmath
+\DeclareMathOperator*{\plim}{plim}
+\usepackage[retainorgcmds]{IEEEtrantools}% http://ctan.org/pkg/ieeetran
+\newcommand{\non}{\IEEEnonumber*}
+\usepackage{scalerel}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{filecontents}
+\newcommand\reallywidehat[1]{%
+\begin{array}{c}
+\stretchto{
+  \scaleto{
+    \scalerel*[\widthof{#1}]{\bigwedge}
+    {\rule[-\textheight/2]{1ex}{\textheight}} %WIDTH-LIMITED BIG WEDGE
+  }{1.25\textheight} % THIS STRETCHES THE WEDGE A LITTLE EXTRA WIDE
+}{0.5ex}\\           % THIS SQUEEZES THE WEDGE TO 0.5ex HEIGHT
+#1\\                 % THIS STACKS THE WEDGE ATOP THE ARGUMENT
+\rule{-1ex}{0ex}
+\end{array}
+}
+\setbeamertemplate{caption}[numbered]
+\usepackage{fontspec}  %加這個就可以設定字體
+\usepackage{xeCJK}       %讓中英文字體分開設置
+%\setromanfont{LiHei Pro} % 儷黑Pro
+\newCJKfontfamily{\K}{標楷體}
+\newCJKfontfamily{\H}{微軟正黑體}
+\setmonofont[Scale=0.8]{Courier New} % 等寬字型
+\setsansfont{Times New Roman}
+\setCJKmainfont{YouYuan} %設定中文為系統上的字型，而英文不去更動，使用原TeX字型
+\XeTeXlinebreaklocale "zh"             %這兩行一定要加，中文才能自動換行
+\XeTeXlinebreakskip = 0pt plus 1pt     %這兩行一定要加，中文才能自動換行
+%\usetheme{lankton-keynote}
+\usetheme{Madrid}
+\usecolortheme[named=BrickRed]{structure}
+\author[蔡佳泓]{\K 蔡佳泓}
+
+\title[Statistical Methods for Social Sciences]{Regression Analysis\\
+\smallskip
+{\small {Simple Linear Regression: Hypothesis Testing}}}
+\date{May 24, 2016} %leave out for today's date to be insterted
+\institute[ESC \& GIEAS]{\H 國立政治大學選舉研究中心與東亞研究所}
+\begin{document}
+\maketitle
+\tableofcontents
+\section{檢定的方式}
+\begin{frame}{\H 迴歸係數的推論}
+迴歸係數有三種推論方式：
+\begin{enumerate}
+\item 點估計：用$ \hat{\beta}_{1} $推估$ \beta_{1} $
+\item 假設檢定：考慮抽樣分佈，用檢定統計檢定$ \beta_{1} $在$\alpha$信賴水準的大小
+\item 區間估計：建構可以涵蓋$ \beta_{1} $的100(1-$\alpha$)\%的信賴區間。
+\end{enumerate}
+高斯馬可夫假設6已經告訴我們誤差項需要成常態分佈。但是樣本規模夠大時並不需要這個假設。
+\end{frame}
+\begin{frame}{\H 迴歸係數}
+\begin{itemize}
+\item 根據以上的迴歸假設，OLS迴歸係數有$\textcolor{blue}{\mathsf{BLUE}}$的特性。
+\item 而在$\textcolor{blue}{\mathsf{CLM}}$假設成立的前提下，$ \beta_{1} $的抽樣分佈表示為：
+\begin{center}
+$ \hat{\beta}_{1} \sim N(\beta_{1},Var[\hat{\beta}_{1}|X])$\\
+$\mathlarger{Var[\hat{\beta}_{1}|X]=\frac{\sigma_{u}^{2}}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2} } $
+\end{center}
+$\beta_{0}$的抽樣分佈表示為：
+\begin{center}
+$\hat{\beta}_{0} \sim N(\beta_{0}, \mathlarger{\frac{\sigma_{u}^2\sum_{i=1}^{n}x^2}{n\sum_{i=1}^{n}(x-\bar{x})^2}} ) $
+\end{center}
+又可以寫成：
+\begin{center}
+$\hat{\beta}_{j}-\beta_{j}/\reallywidehat{SE}(\hat{\beta}_{j})\sim N(0,1)$
+\end{center}
+\end{itemize}
+\end{frame}
+\begin{frame}{\H 母體參數的$t$檢定}
+\begin{itemize}
+\item 因為$\hat{\beta}_{1}$的標準誤可表示為：\\
+$SE[\hat{\beta}_{1}]=\mathlarger{\frac{\sigma_{u}}{\sqrt{\sum_{i=1}^{n}(x-\bar{x})^2}}}$\\
+\item 其中 $\sigma_{u}$可用$\hat{\sigma}_{u}^2$估計，而且$\hat{\sigma}_{u}^2=\mathlarger{\frac{\sum_{i=1}^{n}\hat{u}_{i}^{2}}{n-2}}$
+\item 所以$SE[\hat{\beta}_{1}]=\mathlarger{\frac{\frac{\sum_{i=1}^{n}\hat{u}_{i}^{2}}{n-2}}{\sqrt{\sum(x_{i}-\bar{x})^2}}}  $
+\end{itemize}
+\end{frame}
+\begin{frame}{\H $t$值}
+\begin{theorem}[t值的抽樣分佈]
+$\beta_{1}$的$t$值呈現$t$分佈，自由度為n-2
+\begin{center}
+$T\equiv \hat{\beta}_{1}-\beta_{1}/\reallywidehat{SE}[\hat{\beta}_{1}]\sim \tau_{n-2}$
+\end{center}
+\end{theorem}
+因為$t$分佈的右邊尾巴比常態分佈長，更適合用來檢定有許多不確定性的$T$值\\
+\medskip
+而且計算$\hat{\sigma}_{u}^2$使用($\hat{\beta}_{0},\hat{\beta}_{1}$)，所以自由度是n-2
+\end{frame}
+\subsection{t檢定}
+\begin{frame}{\H $t$檢定步驟}
+已知：
+\begin{center}
+$T\equiv \hat{\beta}_{1}-c/\reallywidehat{SE}[\hat{\beta}_{1}]\sim \tau_{n-2}$
+\end{center}
+\begin{enumerate}
+\item $c$是虛無假設的值，可以是0。
+\item $T$值會有落在某個區域的機率$P$
+\begin{center}
+$P\big(-t_{\alpha/2}(n-2)\leq T \leq t_{\alpha/2}(n-2)\big)=1-\alpha$
+\end{center}
+其中$t_{\alpha/2}(n-2)$代表在$\tau_{n-2}$分佈中，100($1-\alpha$)百分位的值
+\item 根據$SE[\hat{\beta}_{1}]$計算$t$值
+\item 檢查$t$是否在$t$分佈所對應的機率是否非常小。
+\end{enumerate}
+\end{frame}
+\subsection{實例}
+\begin{frame}{\H 實例}
+\begin{enumerate}
+\item 建立虛無假設，例如$\hat{\beta}_{1}=0  $。以及對立假設
+\item 確立$\alpha$，也就是我們容忍類型一錯誤的發生機率
+\item 要很強的證據來拒斥虛無假設，例如$\alpha$=0.05.
+\end{enumerate}
+\end{frame}
+\begin{frame}{實例}
+應用\tt{R}的資料檢驗假設
+\begin{description}
+\item [1]例如，我們想估計$\mathtt {kid\_score}$以及$\mathtt {mom\_iq}$這兩個變數之間的線性關係，並且進行檢定。
+\item [2]因為n=434, $\tau_{n-2}=\tau_{432}$。虛無分佈為$T\sim \tau_{432}$
+\item [3] 查表得知當$\alpha$=0.05，臨界值{\tt qt(0.975,432)=1.96}。因此我們拒斥虛無假設，如果$|t-value|>1.96$
+\item [4] $\hat{\beta}_{1}=0.6$，$SE(\hat{\beta}_{1})=0.05$，$T=\frac{0.6-0}{0.058}=10.34$，所以在$\alpha=.05$，拒斥$\emph{H}_{0}$
+\end{description}
+\end{frame}
+\begin{frame}[fragile=singleslide]
+\begin{Verbatim}[frame=single,label=R code,
+fontseries=b,xleftmargin=2mm,commandchars=\\\{\},
+formatcom=\color{blue}]
+
+> m1<-with(iq,lm(kid_score ~ mom_iq))
+> summary(m1)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 25.79978    5.91741 \textcolor{red}{4.36}    1.63e-05 ***
+mom_iq       0.60997    0.05852 \textcolor{red}{10.42}  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 18.27 on \textcolor{red}{432} degrees of freedom
+Multiple R-squared:  0.201,	Adjusted R-squared:  0.1991 
+F-statistic: 108.6 on 1 and 432 DF,  p-value: < 2.2e-16
+\end{Verbatim}
+\end{frame}
+\begin{frame}{\H 拒斥區域}
+\begin{center}
+\begin{figure}
+\includegraphics[scale=.46]{"reject1.jpg"}
+\end{figure}
+\end{center}
+\end{frame}
+\subsection{p值}
+\begin{frame}[fragile=singleslide]{p-value}
+\begin{itemize}
+\item $p$值提供我們拒斥$\emph{H}_{0}$的證據，代表假設$\emph{H}_{0}$為真時，在重複抽樣之後，觀察到至少像$t$值那麼極端的機會。
+\item $p$值代表$P(|\emph{T}_{0}|>|\emph{T}_{obs}|)$也就是虛無假設下的$t$大於觀察到的$t$
+\item 當$p\leq \alpha$，我們拒斥$\emph{H}_{0}$在$\alpha$的水準。\\
+計算（雙尾檢定）$p$值如下：
+\medskip
+\begin{Verbatim}[frame=single,label=R code,
+fontseries=b,xleftmargin=2mm,commandchars=\\\{\},
+formatcom=\color{blue}]
+>t.obs<-0.609/0.058
+> pt(t.obs,df=432 , lower.tail=F)
+[1] 2.006203e-23
+\end{Verbatim}
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile=singleslide]
+\begin{Verbatim}[frame=single,label=R code,
+fontseries=b,xleftmargin=2mm,commandchars=\\\{\},
+formatcom=\color{blue}]
+
+> m1<-with(iq,lm(kid_score ~ mom_iq))
+> summary(m1)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) 25.79978    5.91741 4.36    \textcolor{red}{1.63e-05} ***
+mom_iq       0.60997    0.05852 10.42  \textcolor{red}{< 2e-16} ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 18.27 on 432 degrees of freedom
+Multiple R-squared:  0.201,	Adjusted R-squared:  0.1991 
+F-statistic: 108.6 on 1 and 432 DF,  p-value: < 2.2e-16
+\end{Verbatim}
+\end{frame}
+\subsection{實例}
+\begin{frame}{沸點與氣壓}
+\begin{itemize}
+\item 1880年代，Forbes 想研究能否用不同海拔的沸點測量大氣壓力。
+\item 他收集了17筆資料沸點與大氣壓力的資料，想知道沸點是否與大氣壓力相關?
+\item 兩者的關係可寫成如下：
+\bigskip
+\begin{center}
+$\textrm{log}_{10}$大氣壓力=$\beta_{0}+\beta_{1}$沸點
+\end{center}
+\end{itemize}
+\end{frame}
+\begin{frame}{Forbes}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[ytick={132,134, 136, 138, 140, 142, 144, 146, 148, 150}, 
+xlabel=Adjusted boiling point of water ,
+ylabel=$\textrm{log}_{10}$(Atmospheric pressure),
+legend cell align=left,
+    legend pos=north west]
+\addplot[only marks, mark=*, blue!80!black] table[row sep=\\]{
+ X Y \\
+194.5 131.79 \\
+194.3 131.79 \\
+197.9 135.02 \\
+198.4 135.55 \\
+199.4 136.46 \\
+199.9 136.83 \\
+200.9 137.82 \\
+201.1 138 \\
+201.4 138.06 \\
+201.3 138.04 \\
+203.6 140.04 \\
+204.6 142.44 \\
+209.5 145.47 \\
+208.6 144.34 \\
+210.7 146.3 \\
+211.9 147.54 \\
+212.2 147.8 \\					
+ };
+  %\addplot[only marks, mark=*, red!80!black]table {\forbes};
+  \addlegendentry{data}
+ \addplot[no markers, very thick, dashed, red] table [row sep=\\,
+ y={create col/linear regression={y=Y}}]{
+ X Y \\
+194.5 131.79 \\
+194.3 131.79 \\
+197.9 135.02 \\
+198.4 135.55 \\
+199.4 136.46 \\
+199.9 136.83 \\
+200.9 137.82 \\
+201.1 138 \\
+201.4 138.06 \\
+201.3 138.04 \\
+203.6 140.04 \\
+204.6 142.44 \\
+209.5 145.47 \\
+208.6 144.34 \\
+210.7 146.3 \\
+211.9 147.54 \\
+212.2 147.8 \\
+ }; 
+\addlegendentry{%
+    $\pgfmathprintnumber{\pgfplotstableregressionb}
+    \pgfmathprintnumber[print sign]{\pgfplotstableregressiona} \cdot x$} %
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\end{frame}
+\begin{frame}{估計}
+\begin{itemize}
+\item $\hat{\beta_{1}}$為0.89
+\item $\reallywidehat{SE}[\hat{\beta}_{1}|X]=0.01$
+\item 計算$\beta_{1}$的$t$值
+\begin{align*}
+t & =\hat{\beta_{1}}-\beta_{1}^{*}/\reallywidehat{SE}[\hat{\beta}_{1}|X] \\
+  & = (0.9-0)/0.01 \\
+  & \approx 54.4
+\end{align*}
+\item  我們可以拒絕接受沸點的係數等於0的假設。
+\end{itemize}
+\end{frame}
+\subsection{單尾或雙尾檢定}
+\begin{frame}[fragile=singleslide]{\H 單尾雙尾檢定}
+\begin{itemize}
+\item $\emph{H}_{0}=0$以及$\emph{H}_{1}\neq 0$稱為雙尾檢定，因為虛無假設可能從兩個方向檢定（$\beta_{1}>0$或是$\beta_{1}<0$）
+\item $\emph{H}_{0}=0$以及$\emph{H}_{1}> 0$稱為單尾檢定，因為虛無假設只能從一個方向檢定
+\item 雙尾檢定的拒斥區比較小，因為分佈在兩邊。$\alpha=0.05$時需要除以2(0.025)
+\begin{Verbatim}[frame=single,label=R code,
+fontseries=b,xleftmargin=2mm,commandchars=\\\{\},
+formatcom=\color{blue}]
+> -qt(0.025, 432)
+[1] 1.965471
+> -qt(0.05, 432)
+[1] 1.648388
+\end{Verbatim}
+\item 因為雙尾檢定的$t$值較大，所以$T$必須更大才能拒斥虛無假設。
+\end{itemize}
+\end{frame}
+
+\section{區間估計}
+\begin{frame}{\H 信賴區間}
+因為
+\begin{center}
+$T\equiv \mathlarger{\frac{\hat{\beta}_{1}-\beta_{1}}{\widehat{SE}[\hat{\beta}_{1}]}}\sim \tau_{n-2}$
+\end{center}
+$P$值可表示為：
+\begin{center}
+$P\Big(-t_{\alpha/2}(n-2)\leq \frac{\hat{\beta}_{1}-\beta_{1}}{\widehat{SE}[\hat{\beta}_{1}]}\leq t_{\alpha/2}(n-2)\Big)=1-\alpha$
+\end{center}
+其中$t_{\alpha/2}(n-2)$代表在$\tau_{n-2}$分佈中，100($1-\alpha$)百分位的值
+\end{frame}
+\begin{frame}{\H 信賴區間}
+在實例中，n=432, $\alpha$=0.05，$P$值可表示為：
+\begin{center}
+$P\Big(-1.96\leq \frac{\hat{\beta}_{1}-\beta_{1}}{\widehat{SE}[\hat{\beta}_{1}]}\leq 1.96\Big)=0.95$
+\end{center}
+改寫成：
+\begin{center}
+$P\Big(\hat{\beta}_{1}-t_{\alpha/2}(n-2)\reallywidehat{SE}[\hat{\beta}_{1}]\leq  \beta_{1}\leq \hat{\beta}_{1}+t_{\alpha/2}(n-2)\reallywidehat{SE}[\hat{\beta}_{1}]\Big)=1-\alpha$
+\end{center}
+也就是
+\begin{center}
+$0.609\pm 1.96\cdot 0.058=[0.49,0.72]$
+\end{center}
+\end{frame}
+\begin{frame}[fragile=singleslide]
+\begin{Verbatim}[frame=single,label=R code,
+fontseries=b,xleftmargin=2mm,commandchars=\\\{\},
+formatcom=\color{blue}]
+> m1<-with(iq,lm(kid_score ~ mom_iq))
+>n<-length(mom_iq)
+>betahat1=coef(m1)[1];betahat2=coef(m1)[2]
+>sigmahat=sqrt(sum(resid(m1)^2)/(n-2))
+>SE1=sigmahat*sqrt(sum(mom_iq^2)/(n*sum((mom_iq-mean(mom_iq))^2)))
+>SE2=sigmahat/sqrt(sum((mom_iq-mean(mom_iq))^2))
+>tstar=qt(1-0.05/2,df=n-2)
+>c(betahat1-tstar*SE1,betahat1+tstar*SE1)
+>c(betahat2-tstar*SE2,betahat2+tstar*SE2)
+\textcolor{red}{(Intercept) (Intercept)} 
+\textcolor{red}{    14.16928    37.43028 }
+> c(betahat2-tstar*SE2,betahat2+tstar*SE2)
+\textcolor{red}{   mom_iq    mom_iq }
+\textcolor{red}{0.4949534 0.7249957  }
+\end{Verbatim}
+\end{frame}
+\begin{frame}{Forbes實例}
+\begin{itemize}
+\item 區間估計可寫成
+\[\hat{\beta}_{1}-t_{\alpha/2}(n-2)\reallywidehat{SE}[\hat{\beta}_{1}]\leq \beta_{1}\leq
+\hat{\beta}_{1}+t_{\alpha/2}(n-2)\reallywidehat{SE}[\hat{\beta}_{1}] \]
+\item $\hat{\beta_{1}}=0.89$
+\item $\reallywidehat{SE}[\hat{\beta}_{1}|X]=0.01$
+\item 自由度為17-2=15
+\item 所以 對應的 $t$ 分佈的標準差為2.13
+\item 所以區間估計為
+\[0.89-2.13(0.01)\leq \beta_{1}\leq 0.89+2.13(0.01)\]
+\begin{center}
+$0.86\leq \beta_{1}\leq 0.93$
+\end{center}
+\end{itemize}
+\end{frame}
+\section{樣本規模}
+\subsection{有效估計}
+\begin{frame}{\H 樣本規模}
+樣本數到一定規模時，係數估計是真實參數的有效估計，也就是$\hat{\beta}_{1}$最終會等於$\beta_{1}$，圖形上為一直線。
+\begin{theorem}[Consistency of OLS estimator]
+當$n\rightarrow \infty$，
+\begin{gather}
+\plim_{n\to\infty}\hat{\beta}_{1}=\beta_{1}\notag
+\end{gather}
+\end{theorem}
+\begin{itemize}
+\item 可證明plim$\hat{\beta}_{1}=\beta_{1}+\frac{Cov[X,u]}{Var[X]}$
+\item 如果$Cov[X,u]\neq 0$，OLS將不是有效（且無偏）的估計\\
+\item 如果$Cov[X,u]\geq 0$，OLS估計將比真實參數$\beta_{1}$來得大。
+\end{itemize}
+\end{frame}
+\subsection{常態分佈}
+\begin{frame}{\H 常態分佈}
+\begin{theorem}[Asymptotic Normality of OLS Estimator]
+當樣本規模大時，樣本統計會成常態分佈
+\begin{center}
+$\mathlarger{\frac{\hat{\beta}_{1}-\beta_{1}}{\widehat{SE}[\hat{\beta}_{1}]}}\sim N(0,1)$\\
+$\widehat{SE}[\hat{\beta}_{1}]=\mathlarger{\frac{\hat{\sigma}_{u}}{\sqrt{\sum_{i=1}^n(x-\bar{x})^2}}}$\\
+$\hat{u}^2=\frac{1}{n}\sum\limits_{i=1}^n\hat{u}_{i}^2\rightarrow \sigma^2_{u}$
+\end{center}
+\end{theorem}
+\end{frame}
+\begin{frame}{\H 常態分佈}
+\begin{itemize}
+\item 根據中央極限定理，$\hat{\beta}_{1}-\beta_{1}/\widehat{SE}[\hat{\beta}_{1}]$會成常態分佈
+\item 但是只要樣本規模夠大，即使不成常態分佈，$t$值、$p$值、信賴區間等等仍然有效。
+\item 只要假設1到5成立，樣本數大的時候，OLS估計有最小的變異數，不需要成常態分佈
+\end{itemize}
+\end{frame}
+\section{迴歸推論}
+\begin{frame}{\H 對於迴歸推論的認識}
+\begin{itemize}
+\item 透過6個假設，讓我們了解迴歸的統計性質
+\item 而迴歸推論有兩種：
+\begin{enumerate}
+\item 描述
+\begin{itemize}
+\item 藉由迴歸線描述變數之間的關係
+\item 但是與母體的特性無關
+\item 只有假設3（自變數有變異量）必須成立
+\end{itemize}
+\item 預測推論
+\begin{itemize}
+\item 預測新的觀察值
+\item 例如X是教育程度，Y是收入，可預測如果教育程度為高中程度時，收入可能為多少？
+\item 假設2（隨機抽樣）以及假設3（自變數有變異量）必須成立
+\item 假設1（線性）也需要成立。
+\end{itemize}
+\end{enumerate}
+\end{itemize}
+\end{frame}
+\section{迴歸預測}
+\begin{frame}{迴歸預測}
+\begin{itemize}
+\item 求出$\beta$之後，可進行預測(prediction)以及計算預測值(predicted values)。
+\item 預測值則是根據信賴區間得到的值。
+\item 預測的範圍稱為Prediction interval或PI，大於預測值的信賴區間或CI。
+\end{itemize}
+\end{frame}
+\subsection{預測}
+\begin{frame}{預測}
+\begin{itemize}
+\item 預測指的是還未發生，需要考慮$\sigma^2$，也就是真正觀察的值可能跟從代入$\beta$得到的值之間有一定
+的誤差。
+\[\tilde{y_{*}}=\hat{\beta_{0}}+\hat{\beta_{1}}x_{*}\]
+\item $\tilde{y_{*}}$是我們根據迴歸係數得到的預測值，但是真正的值有可能等於
+\[ y_{*}=\beta_{0}+\beta_{1}x_{*}+e_{*} \]
+\item 計算$\tilde{y_{*}}$的標準誤公式為:
+\[\sigma^2+\sigma^2\Big(\frac{1}{n}+\frac{(x_{*}-\bar{x})^2}{SXX}\Big)\]
+\item 如果$x_{*}$跟$x_{i}$差別很大，那麼$\sigma^2(\frac{1}{n}+\frac{(x_{*}-\bar{x})^2}{SXX})$影響標準誤的程度將高於原本的$\sigma^2$，也就是來自於殘差的誤差。
+\end{itemize}
+\end{frame}
+\begin{frame}{預測的標準誤以及區間估計}
+\begin{itemize}
+\item 估計標準誤的公式為
+\[ \textrm{se.pred}(\tilde{y_{x}}|x_{*})=\sigma\sqrt{1+1/n+(x_{*}-\bar{x})^2/SXX}\]
+
+\item $\sigma$來自於 Residual standard error
+\item 預測的區間估計可寫成
+\[ \hat{\beta_{0}}+\hat{\beta_{1}}x_{*}\pm t_{\alpha/2, n-2}\times \textrm{se.pred}(\tilde{y}|x)\]
+\end{itemize}
+\end{frame}
+\subsection{預測值}
+\begin{frame}{預測值的標準誤與信賴區間}
+\begin{itemize}
+\item 按照$\beta$代入已經存在的$x$
+\item 預測值可以寫成
+\[\hat{y}=\beta_{0}+\beta_{1}x_{*}\]
+\item $\hat{y}$ 的標準誤寫成
+\[\textrm{se.fit}(\hat{y}|x_{*})=\hat{\sigma}(\frac{1}{n}+\frac{x_{i}-\bar{x}}{SXX})^{1/2}\]
+\item 預測值的信賴區間表示為：
+\[[\hat{y}-t_{(\alpha/2, n-2)}\sigma\cdot \textrm{se.fit},\hspace{1em} 
+\hat{y}+t_{(\alpha/2, n-2)}\sigma\cdot \textrm{se.fit}] \]
+\end{itemize}
+\end{frame}
+\subsection{實例}
+\begin{frame}{PI, CI}
+\begin{itemize}
+\item 假設有一筆資料，n=11，$\sum X_{i}=292.9$，$\sum Y_{i}=69.03$，$\sum X_{i}^2=8141.75$，
+$\sum X_{i}Y_{i}=1890.2$，$\sum Y_{i}^2=442.19$，$E[Y|X]=2.224+0.152X$，$S=0.344$，$\bar{X}=26.627$。
+\item 點估計：$E[Y|X=25]=2.224+0.152*25=6.08$
+\item 預測區間：$t_{(0.025, 9)}(0.344)\sqrt{1+\frac{1}{11}+\frac{11(25-26.627)^2}{11\cdot 8141.75-292.9^2}}$
+\item 預測區間值PI=6.028$\pm$0.8165
+\item 預測值：X=25
+\item 信賴區間：$t_{(0.025, 9)}0.3444\sqrt{\frac{1}{11}+\frac{11(25-26.627)^2}{11(8141.75)-(292.9)^2}}$=
+$0.262\times 0.1082=0.244$
+\item CI=6.028$\pm$ 0.244
+\end{itemize}
+\end{frame}
+\begin{frame}{\H 迴歸推論}
+\begin{enumerate}
+\setcounter{enumi}{2}
+\item 因果推論
+\begin{itemize}
+\item 推論並不存在的事實(counterfactual)
+\item 例如：假如我的教育程度「只有」小學程度，我的收入為何？
+\item 假設1到4（X條件下的誤差項為0）必須成立 
+\item 假設5（誤差項的變異數同質性）不一定需要成立，仍然可以進行因果推論
+\end{itemize}
+\end{enumerate}
+\end{frame}
+\begin{frame}{\H 如何解釋迴歸係數}
+\begin{itemize}
+\item 盡量用X與Y相關、或是X增加預期Y會增加或減少。
+\item 不要用「影響」、「導致」等動詞
+\item 瞭解每一單位的X及Y代表的意義
+\item 簡短地提到統計顯著水準
+\item 討論係數的大小的意義
+\end{itemize}
+\end{frame}
+\begin{frame}
+\begin{center}
+\begin{figure}
+\includegraphics[scale=.4]{substantive1.jpg}
+\end{figure}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\begin{figure}
+\includegraphics[scale=.4]{substantive2.jpg}
+\end{figure}
+\end{center}
+\end{frame}
+\section{結論}
+\begin{frame}\frametitle{\H 總結}
+\begin{enumerate}
+\item {\K 瞭解如何進行假設檢定}
+\item {\K 瞭解如何估計信賴區間}
+\item {\K 瞭解各種迴歸假設的用途}
+\item {\K 瞭解迴歸係數的詮釋}
+\end{enumerate}
+\end{frame}
+
+\end{document}

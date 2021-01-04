@@ -1,0 +1,678 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>資料轉置、資料組合、寬表與長表</h1>
+header-includes:
+     - \usepackage{pdflscape}
+     - \newcommand{\blandscape}{\begin{landscape}}
+     - \newcommand{\elandscape}{\end{landscape}}
+     - \usepackage{fancyhdr}
+     - \setlength{\headheight}{15.2pt}
+     - \pagestyle{fancy}
+     - \fancyhead[LE,RO]{蔡佳泓}
+     - \fancyfoot{}
+     - \chead{\textbf{社會科學統計方法}}
+     - \fancyhead[LO,RE]{\leftmark}
+     - \cfoot{\thepage}
+author: "蔡佳泓"
+job: "東亞所"
+date: '3/31/2020'
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  
+classoption: "hyperref,"
+always_allow_html: yes
+
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+%\listoftables
+\listoffigures
+\end{center}
+
+
+```{r include=FALSE}
+library(showtext)
+showtext.auto(enable = TRUE)
+font.add("SimSun","Songti.ttc")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "center")
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+
+# 課程目標
+本週上課將介紹`R`的`dplyr`的套件中的指令，包括`select`、`filter`、 `mutate`等函數，協助研究者整理資料，並且轉置資料。例如：
+
+```{r echo=TRUE}
+library(dplyr)
+students<-read.table('./data/studentsfull.txt', sep='', header=TRUE)
+students.part<-mutate(students, sex=as.numeric(Gender)-1)
+head(students.part, n=4)
+```
+
+
+---
+
+# 新的資料型態 
+
+之前我們學習`R`的基礎指令，而`dplyr`提供許多指令幫我們整理資料。Hadley Wickman 發展了`plyr`套件，然後又發展`dplyr`套件。為了節省時間，我們直接討論`dplyr`的幾個實用的函數。
+
+## tibble
+在下載`dplyr`套件之後，請嘗試這個指令：
+```{r}
+library(dplyr)
+tmpd <- tibble(
+   x = 1:5, 
+  s=c("all","at","air","age", "angle"),
+  y = 1, 
+  z = x  + y,
+  )
+tmpd
+```
+或者是：
+```{r}
+data_frame(s=c("all","at","air","age", "angle"), 
+           x = 1:5, y = 1, z = x  + y)
+```
+
+tibble是一個新的資料型態，比資料框(data.frame)多了變數的資訊，而且會顯示前面十個觀察值的資訊，以及螢幕剛好足夠容納的下的變數。例如打開pp0797B2.sav這個檔案，但是把它視為tibble而不是data.frame：
+
+```{r}
+pp0797b2<-haven::read_spss('./data/PP0797B2.sav')
+tibble_pp0797b2<-as_tibble(pp0797b2)
+tibble_pp0797b2[1:5,1:3]
+```
+
+可以看出tibble比較適用於大量的資料，讓資料分析更加容易。   
+
+也可以用print功能，決定輸出幾個觀察值以及決定螢幕寬度，但是會顯示在資料中還有哪些變數：
+
+```{r message=FALSE}
+print(as_tibble(pp0797b2), n=3, width=5)
+```
+
+
+而tibble格式的資料子集合可以是該變數的格式，也可以是資料框，可以用參數drop加以控制。例如：
+```{r}
+class(tibble_pp0797b2[,1])
+class(tibble_pp0797b2[,1, drop=TRUE])
+```
+
+### 簡潔數據(tidy dataset)
+
+那麼，tibble的用處是什麼？tibble 來自於Hadley Wickham 發展的簡潔數據(tidy dataset)概念，簡潔數據的目標是讓每一個變數都有一個欄位（每一欄都是一個變數），而且每一筆觀察值都有一列，而且每一個值都有一儲存格（也就是每一個儲存格只有一個值，沒有例如$a/b$是由兩個值所構成）。詳見Garrett Grolemund & Hadley Wicham (http://r4ds.had.co.nz/index.html)。
+tidy dataset也希望資料在同一個表，而非來自於不同的表。 
+
+雖然以下的指令適用於資料框以及整潔數據，但是整潔數據方便大數據分析。例如我們想要pp0797b2這筆資料加權之後的性別統計：
+
+```{r}
+tibble_pp0797b2 %>% 
+  count(sex, wt=w)
+```
+
+ - 請注意目前顯示的是統計後的結果，並沒有改變原始資料。我們可以增加一個向量名稱儲存統計結果：
+ 
+```{r}
+res <- tibble_pp0797b2 %>% 
+  count(age, wt=w)
+res
+```
+
+Hadley Wickham也是`ggplot2`的作者，因此tibble資料適合於`ggplot2`的視覺化，例如我們想呈現性別的分佈，不一定用得到tibble，例如圖 \ref{fig:genderdis}顯示性別的分佈：
+
+```{r, fig.showtext=T, message=FALSE, fig.cap="\\label{fig:genderdis}性別的分佈", warning=FALSE}
+library(ggplot2); library(sjlabelled)
+ggplot(tibble_pp0797b2, aes(x=as_label(sex))) +
+  geom_bar(stat='count', fill='steelblue') +
+  xlab("性別") +
+  theme(text=element_text(
+     family="HanWangYenLight", size=14))
+```
+
+但是要呈現兩個變數之間的相關程度（也就是聯合機率的次數），我們需要計算兩個變數的每一個類別的交叉，然後可以更容易使用ggplot2。以性別與首先計算性別類別下的民族認同（台灣人、中國人、都是、無反應），存成tibble格式的資料：
+
+```{r}
+df.ethnic<-tibble_pp0797b2 %>%
+      group_by(sex) %>%
+      count(ethnic) 
+```
+
+上述指令中的 %>% 被稱為pipeline，有點像是兩行指令之間的連結，讓語法看起來更優雅。  
+
+接下來用tibble格式的df.ethnic 畫直方圖 \ref{fig:sexethnic}：
+
+```{r, fig.showtext=T, fig.cap="\\label{fig:sexethnic}性別與省籍",warning=FALSE}
+geth<-ggplot(df.ethnic, aes(x=as.factor(sex), y=n, fill=as.factor(ethnic))) +
+  geom_bar(stat='identity') +
+  theme(text=element_text(
+    family="HanWangMingBold", size=14)) +
+   scale_x_discrete(breaks=c(1,2),
+      labels=c("男","女")) 
+geth
+```
+
+由此可以看出，tibble資料以及`dplyr`的指令可以直覺式地處理資料。
+
+# 非摘要式指令
+
+`dplyr`指令可以產生新的變數，也可以產生統計的結果。首先介紹轉換資料但是不產生統計摘要（例如平均值、最小值、最大值等等）結果的指令。
+
+## 挑選特定欄位(select)
+
+在一個二維的資料型態，假設我們想留下部分欄位的資料，捨棄其他欄位，可以用`select`這個函數。例如：
+
+```{r}
+library(dplyr)
+dt <- tibble(
+  s=c("B", "B", "A","B","A","C", "B", "B","B", "B", 
+             "A","B","A","C", "B", "B"),
+  x = 1:16, 
+  y = 1, 
+  z = x  + 2*y,
+  )
+dt %>% select(z, s)
+```
+
+## 過濾(filter)
+
+`filter`可以篩選符合條件的變數的觀察值，篩選的變數可以超過一個，例如：
+
+```{r}
+tibble_pp0797b2.filter<-filter(tibble_pp0797b2, 
+            sex=="男性", TOWNID>6300)
+tibble_pp0797b2.filter
+```
+
+可以看出，類別變數或者是數字變數都可以篩選觀察值。
+
+## 創造新變數(mutate)
+
+我們可以直接在資料中創造一個新變數，不需要再用錢字符號（$），並且轉換資料型態，例如：
+
+```{r}
+dt_mutate <- mutate(dt, S=as.factor(s), X=x*100)
+dt_mutate <- mutate(dt_mutate, sn=as.numeric(S))
+dt_mutate
+```
+
+ - 我們也可以用\textbf{mutate}轉換變數的值。我們先讀取SPSS資料。然後用\textbf{mutate}加上\textbf{dplyr::recode}轉換變數的值，從四分類變成二分類。但是因為有部分的值需要轉成遺漏值，所以我們先轉為99，然後用\textbf{filter}函數去掉遺漏值。畫圖的時候，需要加上兩分類的文字，如圖 \ref{fig:recodeq1}。
+
+```{r , fig.showtext=T, fig.cap="\\label{fig:recodeq1}重新編碼兩分類直方圖"}
+#Read data
+idata<-sjlabelled::read_spss('./data/PP1697C1.sav')
+sjlabelled::get_labels(idata$Q1)
+#recode
+idata <- idata %>% mutate(nQ1=dplyr::recode(Q1, `1`=0,    
+              `2`=0, `3`=1, `4`=1, .default=99));
+#recode na
+idata$newQ1<- dplyr::na_if(idata$nQ1, 99) 
+#remove na and make graph
+idata %>% filter(!is.na(newQ1)) %>%
+ggplot(aes(x=as.factor(newQ1))) +   
+    geom_bar(fill="chocolate", stat = 'count') +
+    scale_x_discrete(breaks=c(0,1),
+      labels=c("不同意","同意")) +
+    theme_bw()
+```
+
+再舉一個例子說明可以轉換類別變數中的值為新的字串：
+```{r}
+students <- read.table("./data/studentsfull.txt",header=T)
+students.n <-students %>% 
+  mutate(dept=dplyr::recode(Department, `Mechanics`='ME'))
+head(students.n, n=8)
+```
+
+## 排序(arrange)
+
+我們可以根據某一個或者一個以上的變數遞增或是遞減排序資料，例如按照兩個變數大小排序，desc()會將變數由大而小排序：
+
+```{r}
+dt_arrange = arrange(dt, s, desc(z))
+dt_arrange
+```
+
+ - 目前`dplyr`無法排序欄位名稱超過一個字母的欄位，例如我們讀取一筆資料，然後篩選新竹市以及
+ 選擇三個欄位。
+```{r}
+elec <- read.csv("./data/2008Election.csv",header=T,sep=",")
+colnames(elec) <-c("city", "town", "village", "valid", "spoiled", 
+                   "population", "voter", "Hsieh","Ma")
+elec.nt <- elec %>% filter(city=="Hsinchu City") %>%
+            select (c(town, spoiled, Ma)) 
+``` 
+
+ 如果我們輸入以下指令排序這筆資料，會出現錯誤訊息：
+
+```rmarkdown
+ arrange(elec.nt, c(spoiled, Ma))
+```
+
+正確的語法是：
+```{r}
+head(arrange(elec.nt, spoiled, Ma), n=5)
+```
+
+
+還有一種做法是把這筆資料的欄位名稱改成一個字母，就可以使用\textbf{arrange()}：
+
+```{r} 
+nelec.nt <- elec.nt
+colnames(nelec.nt) <- c("t","s","m") 
+nelec.nt <- arrange(nelec.nt, s, m)
+head(nelec.nt, n=5)
+```
+           
+ 另一個做法是用\textbf{order()}函數排序兩個欄位，然後用配對的方式重新排序資料：
+ 
+```{r} 
+nelec.nt <- elec.nt[order(elec.nt$spoiled, elec.nt$Ma), ]
+head(nelec.nt, n=5)
+```
+
+\noindent
+$\blacksquare$請練習排序councilor.csv這筆資料，根據的變數是Year以及budget。
+```{r include=FALSE}
+DT <- read.csv("./data/councilor.csv",
+          header=T, fileEncoding = 'BIG5')
+arrange(DT, Year, budget)
+```
+
+# 摘要式指令
+
+`dplyr`有許多指令幫助我們計算變數的統計值，以下介紹summarize 以及 group_by。
+
+## 摘要(summarize)
+
+我們可以直接輸出某一個變數的統計結果：
+```{r}
+summarize(dt, mean(x))
+```
+
+或者是轉成另一個變數，方便後續的分析，但是`dplyr`會存成一個tibble資料，所以需要再取出：
+
+```{r}
+dt.sze=summarize(dt, x.avg=mean(x), z.avg=mean(z))
+dt.sze[,1]
+dt.sze[,2]
+```
+
+`summarize`的統計值有：  
+
+ - mean，平均值  
+ - median，中位數  
+ - sum，總數  
+ - min，最小值  
+ - max，最大值  
+ - n()，個數，也就是資料筆數  
+ - n_distinct，類別的個數  
+ 
+（請見DSC2014tutorial的slides('ETL1')的說明）  
+
+例如我們想要知道`mtcars`這筆資料中cyl的個數、平均數跟類別的數目，可以用\textbf{summarize()}這個函數：
+
+```{r}
+mtcars_n<-summarize(mtcars, n(), 
+                    mean(cyl), n_distinct(cyl))
+mtcars_n
+```
+
+## 資料彙總(group_by)
+
+我們可以根據資料內的類別變數對另一個變數進行統計，例如計算平均值，使用`group_by()`這個函數：
+
+```{r}
+summarize(group_by(dt, s),  mean(z))
+
+```
+
+`dplyr`的優點是可以接續畫ggplot的圖形，例如針對\textbf{mtcars}的\textbf{cyl}各類別分析里程數的平均值，然後畫一個直方圖 \ref{fig:mt1}，裡面直接使用剛新建立的變數：
+```{r fig.cap="\\label{fig:mt1}mtcars統計後直方圖"}
+mtcars %>% group_by(cyl) %>% 
+  summarize(avg=mean(mpg)) %>% 
+  ggplot(aes(x=cyl, y=avg))+
+  geom_bar(stat="identity")
+```
+
+如果資料內有遺漏值，可以設定`na.rm`這個參數為真，去除遺漏值，再進行統計，例如以\textbf{nycflights13::flights}這筆資料為例，根據tailnum也就是班機號碼，彙總計算班機次數以及距離（參考：https://dplyr.tidyverse.org/articles/dplyr.html  ）：
+
+```{r}
+library(nycflights13)
+flights %>% group_by(tailnum) %>%
+  summarize(count=n(), 
+            avgdist=mean(distance, na.rm=TRUE))
+flights[1:4, 1:3]
+```
+
+以上的說明希望大家活用`dplyr`，進行統計，並且結合資料視覺化。
+
+
+\noindent
+$\blacksquare$ 請統計\textbf{mpg}這筆資料中，各廠牌汽車(manufacturer)、驅動方式(drv)的平均里程數(hwy)，並且加以排序。請問里程數前三名的廠牌、驅動方式為何？
+
+```{r include=FALSE}
+stat <- mpg %>% group_by(manufacturer, drv) %>%
+        summarize(mean.hwy=mean(hwy)) %>%
+        arrange(mean.hwy)
+```
+----
+
+# 資料的寬表與長表
+
+`dplyr`提供了許多轉換資料以及彙總計算的功能，而針對資料的轉換，`reshape2`套件有很大的幫助。`reshape2`也是由 Hadley Wickham所寫，該套件裡最重要的兩個函數便是 \textbf{melt()} 與 \textbf{dcast()}，如同字面上的意思，melt 是熔化的意思，也就是將資料由多變數熔成較少變數且較長的資料，可以想像資料變長；cast 是鑄造的意思，也就是將資料由較少變數鑄造成較多變數且較寬的資料，可以想像資料變短。cast 有分 dcast 與 acast，只差在要輸出的形式是 data.frame 或是 array。（以上文字參考：https://blog.stranity.com.tw/2016/12/12/r語言reshape2套件/  ）
+
+## 寬表(dcast)
+
+將資料由少變數變形為較寬的資料，在過程中可以加上函數。例如有一筆資料表示銀行的房貸金額，我們先讀取資料，過程中擷取年份與月份：
+```{r echo=TRUE, message=FALSE}
+library(DSC2014Tutorial)
+ETL_file("cl_info_other.csv")
+bank.info = read.table(
+    file=ETL_file("cl_info_other.csv"),
+    sep=",",stringsAsFactors=F,header=T)
+bank.part=mutate(bank.info,
+                 bank_code = as.factor(bank_code),
+                 etl_dt = substr(etl_dt, 1, 7))
+
+bank.part=mutate(bank.part, 
+                 yearmonth=format(etl_dt, 
+                  format='%Y-%m'))
+```
+
+<ul>稍微選取變數方便觀察資料</ul>
+
+```{r}
+bank.part<-select(bank.part, bank_nm, yearmonth, mortgage_bal)
+head(bank.part)
+```
+<ul>
+（指令參考：`DSC2014Tutorial`套件的說明，請先安裝該套件，並且輸入slides('ETL1')。如果有問題請參考授課大綱。）
+</ul>
+然後就銀行名稱(bank_nm)以及年度月份(yearmonth)轉形為寬表，可顯示銀行名稱、每一個時間點的銀行貸款總額（為了顯示方便，銀行貸款一律除以10億）：
+
+```{r}
+library(reshape2)
+bank.part$mortgage_bal.new=bank.part$mortgage_bal/10e+9
+wtable<-dcast(bank.part, bank_nm ~ yearmonth,  
+        value.var=c('mortgage_bal.new'), sum)
+wtable[1:6, 1:6]
+```
+
+sum可以替代為\textbf{length()}以及\textbf{mean()}。雖然寬表提供一些統計功能，也方便我們閱讀，但是無法視覺化寬表的資料。所以我們用melt轉形資料。
+
+## 長表(melt)
+
+長表無法彙總資料，但是可以轉置資料，讓每一筆資料對應一個觀察值，而不是對應超過一個觀察值。我們先用上述的寬表，轉置為長表：
+```{r message=FALSE}
+colnames(wtable)<-c("bank_nm",
+                    "time1","time2",
+                    "time3","time4","time5")
+bank.melt=melt(wtable, id.vars=c('bank_nm'))
+```
+
+
+因為原始資料之中有100多家銀行在五個時間點的資料，為了容易觀察起見，我們只繪圖三家銀行，首先隨機抽出三家銀行：
+```{r}
+#-------------------------------------------------
+#partial: 3 banks
+set.seed(1111)
+bankname<-unique(bank.melt$bank_nm)
+r<-sample(c(1:length(bankname)), size=3, replace=F)
+bankname.r <- bankname[r]
+bankname.r
+```
+
+接下來畫圖 \ref{fig:banktrend} 顯示三家銀行放款的時間趨勢：
+
+
+```{r, fig.showtext=T, fig.cap="\\label{fig:banktrend}銀行放款的趨勢"}
+bank.r<-bank.melt[
+  which(bank.melt$bank_nm==bankname.r[1]|
+          bank.melt$bank_nm==bankname.r[2]|
+                          bank.melt$bank_nm==bankname.r[3]),]
+p=ggplot(bank.r, aes(x=variable, y=value, 
+                     group=bank_nm, color=bank_nm)) +
+  geom_line(stat="identity") +
+  theme(legend.text=element_text(
+    family="SimSun", size=10)) +
+  scale_x_discrete(labels = c("2013-11", "2013-12", 
+                      "2014-01", "2014-04", "2014-05")) +
+    theme_bw()
+p
+```
+<ul>
+可以看出有的銀行一開始貸款總額相當大，然後突然下降，有的則是一直沒有貸款給房貸戶。   
+</ul>
+
+### 清理數據
+
+接下來我們看另一個範例。還記得介紹迴圈時所示範的清理主計處數據：
+```{r echo=TRUE}
+library(foreign)
+stat.dat<-read.csv("./data/CS3171D1A.csv",
+        header=TRUE,sep=";",
+        dec=".",fileEncoding="BIG5")
+```
+
+我們將要多擷取兩個年度的老年人口比率資料，以及擷取三個年度的失業率資料，對每一項資料我們需要一個迴圈，每一個迴圈裡面有兩個變數，也就是從哪一列跟哪一行開始讀取資料：
+
+```{r}
+tempold<-data.frame()
+      for (i in 1:3){
+       for (u in 1:23){    
+         tempold[u,i]<-stat.dat[i+1, u+1]
+ }
+   print(i)
+      }
+
+tempunemploy<-data.frame()
+      for (i in 1:3){
+       for (u in 1:23){    
+         tempunemploy[u,i]<-stat.dat[i+13, u+1]
+ }
+   print(i)
+      }
+```
+
+結合成為資料框，但是用tibble格式觀察資料：
+```{r}
+countyname<-colnames(stat.dat)[-1]
+temp.df <- data.frame(countyname, 
+                      tempold, tempunemploy)
+temp.df.t <-as_tibble(temp.df); 
+temp.df.t[1:5,1:4]
+```
+
+在這個資料框中，V1代表2000年的老年人口，所以它有
+
+1. 年代
+2. 老年人口
+
+這兩個性質，而V1.1代表2000年的失業率，也是有兩個性質，為了區隔這兩個特性，我們再結合一次，這次把失業率放在老年人口比率底下：
+
+```{r}
+info <- rep('old', 23)
+temp.df1<-cbind(countyname, info, tempold)
+info <- rep('unemploy', 23)
+temp.df2<-cbind(countyname, info, tempunemploy)
+temp.df<-data.frame(rbind(temp.df1, temp.df2))
+```
+
+接下來用`melt()`指令轉置資料，並且把其中的年度資料轉換為字串資料，以方便後面的分析：
+
+```{r message=FALSE,warning=FALSE}
+new.df<-melt(temp.df, id=c('countyname', 'info'), 
+             variable.name=c("Time"),
+measure.vars = c("V1","V2","V3"))
+new.df$Year<-c()
+new.df$Year[new.df$Time=='V1']<-2000
+new.df$Year[new.df$Time=='V2']<-2001
+new.df$Year[new.df$Time=='V3']<-2002
+new.df$Year<-as.character(new.df$Year)
+```
+
+如果以縣市為單位，而歸納這三年的兩個變數分別的總和，可以用以下的程式畫圖 \ref{fig:barcounty}：
+```{r fig.showtext=T, warning=FALSE,message=FALSE, fig.cap="\\label{fig:barcounty}失業率以及老年人口比率直方圖"}
+g1<-ggplot(new.df, aes(x=countyname, 
+                       y=value, fill=info)) +
+  geom_bar(stat='identity') +
+  theme(axis.text.x=element_text(
+    family="HanWangMingBold", size=10,angle = 90))
+g1
+```
+
+如果以縣市為單位，而歸納這兩個變數的每一年總和，可以用以下的程式畫圖 \ref{fig:barcounty2}：
+```{r fig.showtext=T,warning=FALSE,message=FALSE, fig.cap="\\label{fig:barcounty2}每年總和的縣市直方圖"}
+g2<-ggplot(new.df, aes(x=countyname, 
+                       y=value, fill=Year)) +
+  geom_bar(stat='identity') +
+  theme(axis.text.x=element_text(
+    family="微軟正黑體", size=10,angle = 90))
+g2
+```
+
+以上兩種統計方式都是以縣市為單位，而選擇年度（三個類別）或者是統計資料（兩個類別）做為歸納單位，但是有沒有可能同時統計這兩者？也就是每一個縣市、每一個年度、老年人口比率與失業率的數字？
+```{r fig.showtext=T,warning=FALSE,message=FALSE, eval=FALSE, fig.cap="\\label{fig:barcounty3}縣市每年老年人口比率與失業率直方圖"}
+g3<-ggplot(new.df, aes(x=countyname, y=value, fill=info)) +
+  geom_bar(stat='identity') +
+  facet_wrap( ~ Year) +
+  theme(axis.text.x=element_text(
+    family="HanWangMingBold", size=16, angle=90),
+    legend.text = element_text(size=18))
+ggsave("./Fig/countryseniorunemployment.png", 
+       g3, width = 30, height = 24, dpi=500)
+
+```
+
+\newpage
+\blandscape
+![縣市每年老年人口比率與失業率直方圖](./Fig/countryseniorunemployment.png){width=1000, height=450}
+
+\elandscape
+\newpage
+
+以上程式使用facet_wrap()納入第二個類別變數，繪出三個直方圖，分別代表三個年度的兩個變數的比率。  
+
+以上說明寬表、長表的用途，希望能有助於資料轉置以及後續分析。
+
+
+----
+
+# 作業
+
+  1. 請下載`nycflights13`這個套件，然後分析`flights`這筆資料，並且建立新變數「速度」，公式為距離(distance)除以飛行時間(air_time)乘以60。請問平均速度多少？最高速多少？可以用`filter`篩選沒有遺漏值的觀察值，例如：
+```{r}
+tibble1<-tibble(A=c(NA, NA, NA, 100, 
+                    200, 600, NA, 100, 0, 200),
+                B=200,
+                C=c(rep(300, 5), rep(400, 5)))
+tibble1 = filter(tibble1, !is.na(A))
+       summarize(tibble1, sum(A,B,C), mean(C))
+```
+
+```{r include=F}
+library(nycflights13)
+flights.new = mutate(flights, speed=distance/air_time*60) 
+flights.new = filter(flights.new, !is.na(speed)) 
+summarize(flights.new, mean(speed), max(speed))
+```
+
+  2. 請讀取studentsfull.txt這個檔案，然後計算不同科系同學的平均分數，再根據平均分數排序資料表：
+```{r include=F}
+df<-read.csv("./data/studentsfull.txt", header=TRUE, sep="")
+df_group = group_by(df, Department)
+df_group = summarize(df_group, score.avg=mean(Score))
+df_group = arrange(df_group, score.avg)
+df_group
+```
+
+  3. 請統計`mtcars`這筆資料中cyl的各類的平均馬力(hp) 以及每加侖可以行駛的英里數(mpg)：
+```{r include=FALSE}
+summarize(group_by(mtcars, cyl), mean(hp), mean(mpg))
+```
+
+  4. 請分別列出PP0797B2.sav資料的區域(arear)的加權後與加權前的次數分佈：
+
+```{r include=FALSE}
+dhs <- haven::read_spss('./data/PP0797B2.sav') 
+dhs.1 <- dhs %>%  count(arear, wt=w) 
+dhs.2 <- dhs %>% count(arear)
+cbind(dhs.1, dhs.2[,2])
+```
+
+  5.請求出Orange這筆資料中不同數木的平均年齡以及平均樹圍。
+```{r include=FALSE}
+Orange %>% group_by(Tree) %>% 
+  summarize(mean(circumference), mean(age))
+```
+  
+  6. 請求出sleep這筆資料中兩組(group)觀察值的平均值以及標準差。
+```{r include=FALSE}
+sleep %>% group_by(group) %>% 
+  summarize(mean(extra), sd(extra))
+```
+
+  7. 請統計flights資料中每年的最後一天的平均出發以及抵達的遲到分鐘。
+
+```{r include=FALSE}
+filter(flights, month==12, day==31) %>%
+       summarize(mean(dep_delay, na.rm=TRUE), mean(arr_delay, na.rm=TRUE))
+```
+
+  8. 請從bank.info資料挑出other_cl_bal大於100億的銀行資料，並且列出銀行的名稱。
+```{r include=FALSE}
+bank.other=filter(bank.info, other_cl_bal>10e+10) 
+  summarize(group_by(bank.other, bank_nm), sum(other_cl_bal))
+```
+
+  9. 根據講義內的銀行資料，請找出貸款總額前五名的銀行，並且畫出這些銀行在五個時間點的貸款總額變化：
+```{r, fig.showtext=T, include=F, eval=F, fig.cap="\\label{fig:bank}五大銀行貸款的變化"}
+#order
+bank.rank<-bank.melt %>% group_by(bank_nm) %>% summarize(total=sum(value)) %>% 
+  arrange(total)
+#names of five top banks
+fivebanks <-bank.rank[125:129,1]
+bank5<-bank.melt[bank.melt$bank_nm %in% as.data.frame(fivebanks)[,1],]
+#graph
+bigbank=ggplot(bank5, 
+         aes(x=variable, y=value, group=bank_nm, color=bank_nm)) +
+  geom_line(stat="identity") +
+  theme(axis.text.x=element_text(
+    family="SimSun", size=10)) +
+  scale_x_discrete(labels = c("2013-11", "2013-12", "2014-01", "2014-04", "2014-05")) +
+    theme_bw()
+bigbank
+```
+
+ 10. 請計算`ISLR::Auto`這筆資料中不同年份車輛(\textbf{year})的平均哩程數\textbf{mpg}的平均數，但是要去掉3汽缸以及5汽缸(\textbf{cylinders}) 的車輛。
+```{r include=F}
+ISLR::Auto %>% filter(cylinders%in%c(4,6,8))%>%
+  group_by(year) %>% 
+  summarize(mean(mpg))
+```
+
+
+
+# 更新日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

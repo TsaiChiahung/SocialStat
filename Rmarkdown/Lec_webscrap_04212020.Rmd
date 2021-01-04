@@ -1,0 +1,84 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>網頁資料收集</h1>
+header-includes:
+     - \usepackage{fancyhdr}
+     - \setlength{\headheight}{15.2pt}
+     - \pagestyle{fancy}
+     - \fancyhead[LE,RO]{蔡佳泓}
+     - \fancyfoot{}
+     - \chead{\textbf{社會科學統計方法}}
+     - \fancyhead[LO,RE]{\leftmark}
+     - \cfoot{\thepage}
+     
+author: "謝吉隆老師（台大新聞所）"
+job: "東亞所"
+date: '5/11/2020'
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  
+classoption: "hyperref,"
+always_allow_html: yes
+
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+%\listoftables
+\listoffigures
+\end{center}
+
+
+```{r include=FALSE}
+library(showtext)
+showtext.auto(enable = TRUE)
+font_add("SimSun","Songti.ttc")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "left")
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+library(haven); library(foreign)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+
+# Cisco網頁
+請同學加入以下會議：Statistical Methods for Social Sciences
+
+ 1. 請拷貝這個連結：
+
+https://moe-tw.webex.com/moe-tw/j.php?MTID=m84d86f4586517affd23158bd74b254d3 
+
+ 到Chrome或是Firefox。
+
+ 2. 輸入會議號碼或者密碼
+
+ - Meeting number: 572 640 246
+
+ - Password: NNyqTVRp864
+
+
+# 操作說明
+上課前請參閱本校操作說明[文件](https://learning.cloud.edu.tw/onlinelearning_file/webex操作說明.pdf)。
+
+# 課堂資料
+
+  1. 請到這個[GitHub連結](https://github.com/P4CSS/R4CSS-Crawlers)下載資料。
+  2. 請按右邊的「clone or download」，然後選「Download ZIP」到電腦上的硬碟，再解壓縮到適當的資料夾。
+

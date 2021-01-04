@@ -1,0 +1,741 @@
+---
+title: "社會科學統計方法"
+subtitle: <h1>迴歸原理(v1.0)</h1>
+author: "蔡佳泓"
+job: <h1><u>東亞所<u></h1>
+date: '5/28/2019'
+output: 
+  html_document: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
+    fig_caption: true
+    #pandoc_args: ["-F","pandoc-crossref"]
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  
+---
+<style>
+body {
+    background-color: #F5F5DC;
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+    line-height: 1.8;
+}
+
+div >  p {
+    font-size: 22px;
+    text-indent: 24px;
+    font-style: BiauKai;
+    color:#171717; padding:10px;
+    font-family: Times, "王漢宗細圓體繁", "新細明體","文泉驛正黑", sans-serif;
+  }
+h2 {
+   font-size: 30px;
+  color: #800000; padding:10px;;
+    line-height: 2;
+   
+}  
+p1 {
+    font-size: 22px;
+    color: #171717;
+    font-family:  Times, "王漢宗細圓體繁", "新細明體", "BiauKai", sans-serif; cursive;
+  }
+p2 {
+    font-size: 20px;
+    color: blue;
+    font-family: "儷黑 Pro";
+    font-family:  Times, "文泉驛正黑", "WenQuanYi Zen Hei", "儷黑 Pro", "BiauKai", "微軟正黑體", "Microsoft JhengHei", sans-serif; 
+  }
+</style>
+
+```{r setup, include=FALSE, echo=FALSE}
+library(knitr)
+library(dplyr)
+library(kableExtra)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+options(knitr.table.format = "html")
+```
+
+# 課程目標
+
+本週上課將介紹迴歸的基本原理，配合之前討論的研究設計，可以描述兩個變數之間的關係。例如兩個變數的散佈圖加上迴歸線：
+
+```{r}
+library(UsingR)
+ggplot(nym.2002, aes(age, time)) +
+       geom_point(col="#808000", size=2) +
+       geom_smooth(method="lm")  +
+       theme_bw() +
+       theme(axis.title=element_text(size=12), 
+             axis.text = element_text(size=12))
+```
+
+# 迴歸的意義
+
+<li>迴歸的目的是找到依變數或是反應變數(outcome)Y與一個或是一個以上的預測變數(predictor)X的函數關係。</li>
+<li> 迴歸的基礎觀念是條件機率，也就是迴歸線逼近在X成立的條件下，Y的平均值。所以模型的對象是$E[Y|X]$，也就是X變化時，Y的平均值變化大小。</li>
+<li> 母體迴歸函數(Population regressio function)一般表示為$E(Y|X)=\beta_{0}+X\beta_{1}+\epsilon$，或者$Y=f(X)+\epsilon$。$Y$是依變數，$X=(X_{1},X_{2},\ldots,X_{p})$為自變數。$f$代表固定但是未知的函數，也就是$Y$與$X_{1},X_{2},\ldots,X_{p}$之間的關係。$\epsilon$是隨機變數，可能包含我們沒有測量到的變數，或是無法測量的變數，並且獨立於$X$。例如，不同病情的病人對於某種藥劑有不同的反應，兩者之間的關係可以用$Y=f(X)$表示。但是這種藥劑製作過程中，可能受到某些因素的影響而有不同的藥效，也可能因為病人當天的生理狀況而有不同的反應，這些都可歸類為$\epsilon$。
+<li>迴歸模型就是盡可能逼近X各類別下Y的平均數的函數。一旦找到這樣的迴歸函數，可以用來預測其他的觀察值，或是進行因果推論。</li>
+
+統計學習(statistical learning)包含許多估計$f$的方法。統計學習的目的是：
+
+ 1. 預測：假設誤差項 $\epsilon$ 的平均值為0。$\hat{Y}=\hat{f}(X)$，也就是$f(X)$可以預測$Y$，因為$\hat{f}$只是$f$的預測，所以兩者之間有誤差。即使$\hat{f}$等於$f$，$\hat{Y}=f(X)+\epsilon$，因此讓$E(\epsilon^2)=Var(\epsilon)$越小，預測就越準確。不過，我們無法減少$\epsilon$，因此預測的正確性(accuracy)有上限，實際上無法得知上限有多少。
+ 2. 推論：我們關心的是$X$與$Y$之間的關係，$Y$如何隨著$X$而變動。例如，某家公司收集了許多消費者資料，他們想要知道那些背景的消費者對於他們的產品有興趣，也就是從許多變數中找到與$Y$相關的變數。此外，$X$與$Y$有可能是非線性的關係。線性模型的推論比較容易詮釋，但是不一定能預測所有觀察值。非線性模型的預測能力比較好，但是不容易詮釋。
+ 3. 預測與推論兩者並重：一方面估計哪些房屋的特徵會影響房價，一方面預測特定房屋的價格被低估或者高估。
+
+<h2>迴歸名詞解釋</h2>
+
+<li>參數：$E[Y|X]$是觀察不到的母體參數，所以模型的對象$E(Y|X)$。是因為我們只有一組樣本，所以得到的只是$E[Y|X]$的估計其中之一。 </li>
+<li>樣本統計：$\hat{E}[Y|X]$。 </li>
+<li>估計：某一個樣本所得到的$\hat{E}(Y|X)$。</li>
+
+## 有母數與無母數迴歸 ##
+
+<li>有母數模式(parametric)意為函數是由一組母數所規範；具有某種固定的型態，例如線性、對數等等。無母數(non-parametric)的模式則為未知的函數型態，簡單地講，也就是沒有母數的限制。</li>
+<li> 母數迴歸模式的最大優點是可以推論迴歸結果，但是其缺點就是迴歸形式固定而呆板。無母數迴歸的優點是符合資料程度高，但是難以推論。</li>
+<li>無母數迴歸不假設變數之間有線性關係，目的是選擇合適的平滑參數，讓通過樣本的迴歸線能夠最好地逼近真實的迴歸曲線，也就是讓均方誤差為最小。</li>
+<li> 無母數迴歸可以作為測試最小平方法迴歸模型是否線性的基礎。</li>
+<li> 無母數迴歸及散佈圖可以作為瞭解資料分佈的基礎，有可能是非線性分佈。</li>
+<li> 無母數迴歸係數無法像線性迴歸係數可以進行$t$檢定或是推論母體的參數。它只能讓我們觀察最接近每一個點的線。</li>
+<li> 無母數迴歸使用的樣本統計(estimator)有很大的彈性。帶寬越小，越有彈性，預測值的變異數也越大。</li>
+<li> 帶寬越大，越不具彈性，與真實模型之間的誤差越大。</li>
+
+## 無母數模型
+### 區域平均值(Simple Local Average)
+ - 估計$E[Y|X]$的方法之一是「可移動的區域平均」(moving local average)。假設$[X_{0}-h,X_{0}+h]$這個區間內有許多y，計算這些y的平均值便是「可移動的區域平均」。
+ - $h$稱為帶寬(bandwidth)。
+ - 如果在區間內的每一個y都視為同樣的，有相同的權重，稱為「單一核密度」(Uniform Kernel)。又稱為Nadaraya–Watson kernel regression estimate.
+ - 母體參數可估計如下：
+
+ $\hat{E}[Y|X]=\frac{\sum_{i=1}^N K_{h}((X_{i}-x_{0})/h)Y_{i}}{\sum_{i=1}^N K_{h}((X_{i}-x_{0})/h)}$
+
+- 根據以上「可移動的區域平均」公式，依照不同的帶寬，可計算得到不同的區域平均值。 將這些區域平均值連起來就是無母數迴歸線。
+![](nonpreg1.jpg){width=400px, height=500px}
+
+### 區域多項迴歸(Local weighted polynomial regression)}
+
+ - 前一個無母數迴歸中，因為每一區間內的觀察值得到同樣的權重，所以形成線條狀的迴歸線。
+ - 在資料中我們取若干觀察值來計算每一個觀察值到特定觀察值(focal point)之間的距離，不同的區間大小決定該區間會用到多少比例的觀察值，也決定曲線的平滑程度。區間越大，平滑程度越大。。
+ - 進一步，我們用多元的函數來決定權重。根據權重可以計算出特定觀察值的模型值。模型可表示為：
+
+$Y_{i}=\alpha_{0}+\beta_{1}(x_{i}-x_{0})+\cdots +\beta_{p}(x_{i}-x_{0})^{p}+E_{i}$
+
+ - 在最小化誤差的平方之後，把估計點連起來平滑曲線，稱為local weighted polynomial function或是Bivariate local polynomial regression. 
+ - 這個只用鄰近資料點的方法，可以避免某些特別大或是特別小觀察值的影響。
+
+![](nonpreg2.jpg){width=400px, height=500px}
+
+###  合併
+
+ - 合併線性迴歸與無母數迴歸在一張圖，可以看出資料點的散佈並非線性。
+ - 有許多診斷反應變數與解釋變數是否有線性關係的方式，例如檢視預測值與殘差的散佈圖，如果散佈圖呈現特定形狀，有可能兩者之間非線性關係。
+
+![](nonpreg3.jpg){width=400px, height=500px}
+
+從以上可知：
+
+ - 從點估計的均方誤差和可以想像，變異數與誤差之間有衝突，一個太大，另一個就會太小。
+
+$MSE_{pred.-y_{i}}=Var_{pred.}+Bias_{\mathit{f_{i}}-y_{i}}^2$
+
+
+ - 無母數迴歸使用的樣本統計(estimator)有很大的彈性。
+ - 帶寬越小，越有彈性，預測值的變異數也越大。帶寬越大，越不具彈性，與真實模型之間的誤差越大。
+
+![](nonpa_4.jpg){width=400px, height=500px}
+![](nonpa_8.jpg){width=400px, height=500px}
+
+![](loess_r.jpg){width=400px, height=500px}
+<hr>
+
+### 無母數迴歸的重要性
+
+ - 無母數迴歸可以作為測試最小平方法迴歸模型是否線性的基礎。
+ - 無母數迴歸及散佈圖可以作為瞭解資料分佈的基礎，有可能是非線性分佈。
+ - 無母數迴歸係數無法像線性迴歸係數，可以進行$t$檢定或是推論母體的參數。它只能讓我們觀察最接近每一個點的線。
+ - 無母數統計不容易詮釋，因此我們以有母數統計的線性迴歸推論變數之間的關係。
+
+# 有母數統計：線性迴歸
+
+<li> 線性迴歸假設條件平均值呈現線性。</li>
+
+$E[Y|X]=\beta_{0}+X\beta_{1}$  
+
+<li> 只有兩個係數。$\beta_{0}$稱為截距或常數，$\beta_{1}$稱為斜率係數。當X=0，$E[Y|X=0]$等於Y的期望值，也就是$\beta_{0}$</li>
+
+<li> 線性假設的其中之一是截距為固定。 使用觀察資料，或者訓練資料估計模型之後，可以得到模型的預測值，表示為：
+$\hat{y}=\hat{\beta}_{0}+\hat{\beta}_{1}x$   
+<li>$y_{i}$與$\hat{y}$之間的差異稱為殘差$e_{i}$，或者*residual*</li>
+<li>定義殘差的平方和為：</li>
+$RSS=e_{1}^2+e_{2}^2+\ldots +e_{n}^2$
+
+### 迴歸係數的意義
+
+ 迴歸模型$Y=\hat{\beta}_{0}+\hat{\beta}_{1}X$   中，$\hat{\beta}_{1}$的意義為何？
+ 
+ - $\beta_{1}>0$: $E[Y|X]$ 隨著X增加
+ - $\beta_{1}<0$: $E[Y|X]$ 隨著X減少
+ - $\beta_{1}＝0$: $E[Y|X]$與X無線性關係
+
+如果用在預測：
+
+ - 估計樣本的$\hat{\beta}_{0}$以及$\hat{\beta}_{1}$。
+ - 根據$\hat{E}[Y|X=x_{new}]=\hat{\beta}_{0}+\hat{\beta}_{1}x_{new}$得到新的預測值$\hat{E}[Y|X=x_{new}]$
+ - $\hat{E}[Y|X=x_{new,1}]=\hat{\beta}_{0}+\hat{\beta}_{1}(x_{new,1})$
+ - $\hat{E}[Y|X=x_{new,2}]=\hat{\beta}_{0}+\hat{\beta}_{1}(x_{new,2})$
+ - $\hat{E}[Y|X=x_{new,1}]-\hat{E}[Y|X=x_{new,2}]=\hat{\beta}_{1}(x_{new,1}-x_{new,2})$
+
+<h2>電視廣告與銷售量</h2>
+
+<li>電視廣告與銷售量之間的關係以迴歸表示為：  </li>
+sales $\approx {\beta}_{0}+{\beta}_{1}\cdot$ TV  
+
+```{r}
+site="http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv"
+Advertising<-read.csv(file = url(site), sep=',', header = TRUE)
+m1<-lm(sales ~ TV, data=Advertising)
+summary(m1)
+```
+資料來源：[James et al., 2013](http://www-bcf.usc.edu/~gareth/ISL/ISLR%20First%20Printing.pdf)  
+<li>電視廣告與銷售量之間的關係可寫成sales = $7.03+0.04\cdot$ TV</li>  
+<li>但是觀察到的sales與迴歸線預測的之間會有差異。</li>
+
+畫圖如下：
+```{r}
+library(ggplot2)
+A1<-ggplot(Advertising, aes(x=TV, y=sales)) +
+  labs(y = 'Sales', x = 'TV')  +
+  geom_point(col="saddlebrown") +
+  geom_smooth(method="lm", col='blue', se=F, size=1.5) ; A1
+```
+
+加上預測值以及觀察值與預測值之間的殘差（參考[BLOGR](https://drsimonj.svbtle.com/visualising-residuals)）：
+```{r}
+Advertising$predicted <- predict(m1)   # Save the predicted values
+Advertising$residuals <- residuals(m1) # Save the residual values
+
+# Quick look at the actual, predicted, and residual values
+#library(dplyr)
+#Advertising %>% select(predicted, residuals) %>% head()
+  ggplot(Advertising, aes(x=TV, y=sales)) +
+    geom_point(color="saddlebrown") +
+    geom_point(aes(y = predicted), shape = 1, color="red") +
+    geom_segment(aes(xend=TV, yend=predicted), color="lightgray") +
+    theme_bw()
+    
+```
+
+<li>如果殘差的總和越小，預測值與觀察值就越接近，所得到的迴歸係數以及整個模型就越能預測未來的依變數。</li>
+
+## 複迴歸
+
+<h2>複迴歸的優點</h2>
+<li> 可以統計更多資訊，做為描述之用 </li>
+<li> 改善模型的預測能力，解釋單一變數無法解釋的變異量 </li>
+<li> 控制可能的「混淆」(confounding)變數，以利因果推論 </li>
+<li> 估計更複雜的模型(例如：$Y=\beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2}^2$)</li>
+<li> 估計有交互作用變項的模型(例如：$Y=\beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2}+\beta_{3}X_{1}X_{2}$) </li>
+<li> 單迴歸的模型寫成:
+$E[Y|X_{1}=x_{1}]=\beta_{0}+\beta_{1}x_{1}$ </li>
+<li> 雙變數的迴歸模型可寫成:
+$E[Y|X_{1}=x_{1}, X_{2}=x_{2}]=\beta_{0}+\beta_{1}x_{1}+\beta_{2}x_{2}$</li>
+
+<h2>複迴歸模型</h2>
+<li>先分別估計單迴歸模型：</li>
+```{r}
+library(foreign)
+iq<-read.dta("kidiq.dta")
+f1 <- with(iq, lm(kid_score ~ mom_hs) )
+summary(f1)
+```
+估計結果寫成：    
+kid_score = $77.548 + 11.77\cdot$ mom_hs
+
+```{r}
+f2 <- with(iq, lm(kid_score ~ mom_iq))
+summary(f2)
+```
+估計結果寫成：    
+kid_score = $25.799+ 0.609\cdot$ mom_iq
+
+<li>雙變數模型：</li>
+$\widehat{\mathrm {Kid's\hspace{.25em} Scores}}=\hat{\beta}_{0}+\hat{\beta}_{1}(\mathrm {Mom\hspace{.25em} has\hspace{.25em} HS\hspace{.25em} degree})+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ})$
+
+當$X_{1}=1$（母親有高中學歷），
+\[
+\begin{eqnarray}
+\widehat{\mathrm {Kid's\hspace{.25em} Scores}}  & = &\hat{\beta}_{0}+\hat{\beta}_{1}\cdot 1+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ}) \\
+ & = &\hat{\beta}_{0}+\hat{\beta}_{1}+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ})
+ \end{eqnarray}
+ \]
+
+當$X_{1}=0$（母親沒有高中學歷），   
+\[
+\begin{eqnarray}
+\widehat{\mathrm {Kid's\hspace{.25em} Scores}} & = &\hat{\beta}_{0}+\hat{\beta}_{1}\cdot 0+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ}) \\
+& = &\hat{\beta}_{0}+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ})
+\end{eqnarray}
+\]
+
+也就是說，這兩個模型的斜率一樣，但是當$X_{1}=1$時，截距多了
+$\hat{\beta}_{1}$。  
+進行估計如下：
+```{r}
+f3 <- with(iq, lm(kid_score ~ mom_hs + mom_iq))
+summary(f3)
+```
+
+估計得到的模型為：\[\hat{Y}=25.73+5.95\cdot 高中畢業與否 +0.56\cdot 母親智商\]  
+係數分別代表的意義為：
+
+<li> $\hat{\beta}_{0}$代表母親沒有高中畢業的迴歸線的截距</li>
+<li> $\hat{\beta}_{1}$代表母親有無高中畢業的兩條迴歸線的垂直距離</li>
+<li> $\hat{\beta}_{2}$代表兩條線的斜率 </li>
+
+```{r}
+ggplot(iq, aes(x=mom_iq, y=kid_score, group=mom_hs)) +
+    geom_point(aes(color=factor(mom_hs)), shape=1, size=2)  +
+    geom_abline( slope=0.56, intercept=25.73, col="indianred", size=1.2) +
+    geom_abline(slope=0.56, intercept=25.73+5.95, col="blue", size=1.2) +
+    scale_color_discrete(name = "Mother with High School Degree",
+                         labels=c("No High School Degree","High School Degree")) +
+    theme_bw() +
+    theme(legend.position = "top") +
+    labs(x="Mother's IQ", y="Kid's Score")
+```
+
+## 兩個連續變數
+
+<li>改用母親的智商與年齡這兩個連續變數預測依變數：學生成績，估計模型： </li>
+```{r}
+fit4 <- with(iq, lm(kid_score ~ mom_iq + mom_age))
+summary(fit4)
+```
+
+\[
+\hat{Y}=17.6+0.6\cdot 母親智商 +0.39\cdot 母親年齡   
+\]
+
+雙連續變數的迴歸係數分別代表的意義為：  
+
+<li> $\hat{\beta}_{0}=17.6$代表母親智商與年齡等於0的截距（沒有意義）</li>
+<li> $\hat{\beta}_{1}=0.6$代表對於同樣的兩個觀察值，母親年齡相同但是母親智商有一單位的差異預期帶來的學生分數的差異。 </li>
+<li> $\hat{\beta}_{2}=0.39$代表對於同樣的兩個觀察值，母親智商相同但是母親年齡有一單位的差異預期帶來的學生分數的差異。</li>
+
+因為  
+
+\[
+\mathcal{\frac{\partial (y=\beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2})}{\partial X_{1}}}=\beta_{1}
+\]
+
+所以$\hspace{.3em}\beta_{1}\hspace{.3em}$代表當其他變數在同一個值或是水準時，對於$\hspace{.3em}y\hspace{.3em}$的淨作用。
+
+# 交互作用
+<li>假設$Y$因為第二個變數$Z$而有差異，而且自變數$X$也因為$Z$有差異，我們需要考慮交互作用：</li>
+\[\widehat{\mathrm {Kid's\hspace{.25em} Scores}}=\hat{\beta}_{0}+\hat{\beta}_{1}(\mathrm {Mom\hspace{.25em} has\hspace{.25em} HS\hspace{.25em} degree})+\hat{\beta}_{2}(\mathrm {Mom's\hspace{.25em} IQ}) + \hat{\beta}_{3}(\mathrm{Mom's\hspace{.25em} IQ}\cdot 
+\mathrm{Mom's\hspace{.25em} HS})
+\]
+<li>重新估計：</li>
+```{r}
+fit5 <- with(iq, lm(kid_score ~ mom_iq + mom_hs+mom_iq:mom_hs))
+fit5.1<-with(iq, lm(kid_score[mom_hs==1] ~ mom_iq[mom_hs==1]))
+fit5.2<-with(iq, lm(kid_score[mom_hs==0] ~ mom_iq[mom_hs==0]))
+```
+
+```{r include=F}
+library(stargazer)
+
+stargazer(fit5.1, fit5.2, fit5, type="html")
+```
+<table style="text-align:center"><tr><td colspan="4" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="3"><em>Dependent variable:</em></td></tr>
+<tr><td></td><td colspan="3" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>kid_score[mom_hs == 1]</td><td>kid_score[mom_hs == 0]</td><td>kid_score</td></tr>
+<tr><td style="text-align:left"></td><td>(1)</td><td>(2)</td><td>(3)</td></tr>
+<tr><td colspan="4" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">mom_iq[mom_hs == 1]</td><td>0.485<sup>***</sup></td><td></td><td></td></tr>
+<tr><td style="text-align:left"></td><td>(0.065)</td><td></td><td></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">mom_iq[mom_hs == 0]</td><td></td><td>0.969<sup>***</sup></td><td></td></tr>
+<tr><td style="text-align:left"></td><td></td><td>(0.157)</td><td></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">mom_iq</td><td></td><td></td><td>0.969<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td>(0.148)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">mom_hs</td><td></td><td></td><td>51.268<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td>(15.338)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">mom_iq:mom_hs</td><td></td><td></td><td>-0.484<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td>(0.162)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>39.786<sup>***</sup></td><td>-11.482</td><td>-11.482</td></tr>
+<tr><td style="text-align:left"></td><td>(6.663)</td><td>(14.601)</td><td>(13.758)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td></tr>
+<tr><td colspan="4" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>341</td><td>93</td><td>434</td></tr>
+<tr><td style="text-align:left">R<sup>2</sup></td><td>0.143</td><td>0.294</td><td>0.230</td></tr>
+<tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.140</td><td>0.286</td><td>0.225</td></tr>
+<tr><td style="text-align:left">Residual Std. Error</td><td>17.664 (df = 339)</td><td>19.073 (df = 91)</td><td>17.971 (df = 430)</td></tr>
+<tr><td style="text-align:left">F Statistic</td><td>56.422<sup>***</sup> (df = 1; 339)</td><td>37.874<sup>***</sup> (df = 1; 91)</td><td>42.839<sup>***</sup> (df = 3; 430)</td></tr>
+<tr><td colspan="4" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="3" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+</table>
+
+<li>請計算完整的模型(3)，當母親高中程度變數分別為1與0，係數是否分別等於模型(1)與(2)？</li>
+重新畫圖：
+```{r}
+ggplot(iq, aes(x=mom_iq, y=kid_score, group=mom_hs)) +
+    geom_point(aes(color=factor(mom_hs)), shape=1, size=2)  +
+    geom_abline( slope=0.969, intercept=-11.482, col="indianred", size=1.2) +
+    geom_abline(slope=0.485, intercept=39.786, col="blue", size=1.2) +
+    scale_color_discrete(name = "Mother with High School Degree",
+                         labels=c("No High School Degree","High School Degree")) +
+    theme_bw() +
+    theme(legend.position = "top") +
+    labs(x="Mother's IQ", y="Kid's Score")
+```
+
+代入不同的值，會得到不同的交互作用與自變數的值。
+
+<hr>
+# 計算迴歸係數
+
+<li>要知道迴歸的參數$\beta_{0}$以及$\beta_{1}$，我們必須估計$\hat{\beta_{0}}$跟$\hat{\beta_{1}}$，方法是盡量降低誤差的總和。我們用之前提到的RSS(Residual Squared Sum)表示  </li>
+\[
+\begin{eqnarray}
+u &= &y_{i}-\hat{y}_{i} \\
+&= & y_{i}- \tilde{\beta}_{0}-\tilde{\beta}_{1}x_{i}
+\end{eqnarray}
+\]
+<li>OLS迴歸的目標是最小化殘差，殘差可以計算為$y_{i}-\hat{y}_{i}$，但是這會給所有的${y}_{i}$一樣的權重。改用殘差的平方和 ($\it{SSR}$), 才會給離迴歸線越遠的${y}_{i}$比較大的權重，這樣才能反映離差的大小。</li>
+$S(\tilde{u})=\mathcal{\sum\limits_{i=1}^n(y_{i}-\tilde{u})^2}$
+<li>OLS迴歸的目的是找到最小化以下模型的$\{\hat{\beta}_{0},\hat{\beta}_{1}\}$ </li>
+ \[
+ \{\tilde{\beta}_{0}, \tilde{\beta}_{1}\}=
+ \]
+ *minimize*  
+ $\sum _{i=1}^n(y_{i}-\tilde{\beta}_{0}-x_{i}\tilde{\beta}_{0})^2$  
+<li>樣本平均數就是最佳的殘差，也就是最小平方法的樣本統計(estimator)</li> 
+ \[\hat{u} \equiv  \tilde{u} = \frac{1}{n}\mathcal {\sum\limits_{i=1}^n y_{i}} \] 
+
+<li>經過對上述方程式微分之後，迴歸係數可計算為</li>
+\[
+\mathcal{\hat{\beta}_{1}=\frac{\sum y_{i}-\hat{\beta}_{0}n}{\sum x_{i}}}
+\]
+\[
+\mathcal{\hat{\beta}_{0}=\frac{\sum x_{i}y_{i}-\hat{\beta}_{1}\sum x_{i}^2}{\sum x_{i}}}
+\]
+<li>經過推導，$\hat{\beta_{1}}$可改計算為：</li>
+\[
+\hat{\beta_{1}}=\mathcal{n\sum (x_{i}-\bar{x})(y_{i}-\bar{y})}
+\]
+<h2>從線性函數推導</h2>
+<li>假設$Y=f(X)$</li>
+<li>當X從$a_{1}$改變到$a_{2}$，$f(a_{1})$也變成$f(a_{2})$</li>
+<li>因此，X的變動程度造成Y的變動程度表示為$\mathcal{m=\frac{\mathit{f(a_{2})-f(a_{1})}}{\mathit{a_{2}-a_{1}}}}$，也就是線性函數的斜率。 也有人表示為$\frac{\Delta Y}{\Delta X}$</li>
+其中$a_{2}>a_{1}$
+<li>如果用微分方式，對於可微分的函數，求通過函數上任何一點的斜率：$\mathcal{\mathrm{lim}_{\mathit{h}\rightarrow 0}\frac{\mathit{f(x+h)-f(x)}}{\mathit{h}}}$。
+<li>因此，微分函數之後代表X變動一個單位，Y的變動</li>
+<li>另一種迴歸係數的計算方式：</li>
+
+\[
+\begin{eqnarray}
+\hat{\beta}_{1} & = & \frac{\sum_{i=1}^n(x_{i}-\bar{x})(y_{i}-\bar{y})}{\sum_{i=1}^n(x_{i}-\bar{x})^2} \\
+&  = &\frac{Sample\hspace{.5em} covariance\hspace{.5em} of\hspace{.5em} X\hspace{.5em} and\hspace{.5em} Y}{sample\hspace{.5em} variance\hspace{.5em} of\hspace{.5em} X}
+\end{eqnarray}
+\]
+另一方面，
+\[
+\hat{\beta}_{0}=\bar{y}-\hat{\beta}_{1}\bar{x}
+\]
+根據以上的公式可以得出兩個結論：  
+<li>X的變異數越大，$\hat{\beta}_{1}$越小</li>
+<li>X, Y的共變量越大，$\hat{\beta}_{1}$越大</li>
+<h2>各項名詞的意義</h2>
+<li> $y_{i}-\bar{y}$等於是用y的平均值無法預測到$y_{i}$的部分</li>
+<li> $\hat{u}_{i}=y_{i}-\hat{y}_{i}$是用迴歸線無法預測到$y_{i}$的部分</li>
+<li> $\hat{y}-\bar{y}$是y的預測值與平均值的差異。</li>
+<li> $\sum _{i}^n(y_{i}-\bar{y})^2$=SST=Var[y]</li>
+也稱為*Total Sum of Squares*   
+<li>y的變異量(variability)可表示如下：</li>
+*Residual Sum of Squares*     
+\[
+\begin{eqnarray}
+\sum _{i}^n(\hat{y}_{i}-y_{i})^2 &=&\sum _{i}^n\hat{u}^2\\
+&= &SSR \\
+& = & Var[\hat{u}] 
+\end{eqnarray}
+\]   
+<li>y的預測值與平均值的差異則是：</li>
+*Explained Sum of Squares*  
+\[
+\begin{eqnarray}
+\sum _{i}^n(\hat{y}-\bar{y})^2 & = & SSE\\
+& = & Var[\hat{y}]
+\end{eqnarray}
+\]
+
+這三者的關係寫成：SST=SSE+SSR  
+
+# $R^2$的意義
+<li> 因為SST=SSE+SSR，所以有以下的關係： </li>
+
+\[
+\mathcal{\frac{SST}{SST}=\frac{SSE}{SST}+\frac{SSR}{SST}}
+\]
+以及  
+\[
+\mathcal{\Longleftrightarrow \frac{SSE}{SST}=1-\frac{SSR}{SST}\equiv R^2}
+\]
+\[R^2=\frac{\sum (\hat{y}-\bar{y})^2}{\sum (y-\bar{y})^2}
+\]
+<li>$R^{2}$可以詮釋成Y與X相關，$0\leq R^{2} \leq 1$。但是X與Y事實上無法一個解釋另一個。</li>
+```{r}
+x <- seq(1,10,length.out = 100)
+y <- 2 + 1.2*x + rnorm(100,0,sd = 2)
+cat("Y~X, R-squared:", summary(lm(y ~ x))$r.squared, "\n")
+cat("X~Y, R-squared:", summary(lm(x ~ y))$r.squared, "\n")
+
+```
+
+<li> 如果$R^{2}=0$, $\hat{y}=\bar{y}$，X完全無法解釋Y</li>
+<li> 如果$R^{2}=1$, 每一個點$(x_{i},y_{i})$落在迴歸線上</li>
+<li> 不同的資料有可能得到相近的$R^2$</li>
+先創造兩個變數，並且計算相關係數：  
+```{r}
+set.seed(02138)
+X1 <-rnorm(100, 0, 1); X2 <- X1+rnorm(100, 0, 1)
+print(cor(X1, X2))
+```
+
+再創造Y，並且估計迴歸模型：
+```{r}
+#Y
+Y <- X1+rt(100, 40)
+f1<-lm(Y ~ X1)
+f2<-lm(Y ~ X2)
+summary(f1); summary(f2)
+```
+
+觀察散佈圖：
+```{r}
+# graph
+par(xpd=NA, mar=par()$mar+c(1, 0, 0, 0))
+plot(X1, Y, type='n', xlab="X1, X2")
+points(X1, Y, pch=16)
+points(X2, Y, col="red", pch=16)
+legend("bottomright", c("X1","X2"), col=c("black", "red"), 
+       pch=c(16, 16), bty="n")
+```
+
+<li>X1與X2的相關係數為0.67，而Y被X1解釋0.498的變異量，只被X2解釋0.192的變異量。</li>
+
+當依變數的變異程度變大，而其他變數不變，$R^2$會變小（為什麼？），但是$X$與$Y$之間的關係並沒有改變；迴歸係數約在1.5左右。
+```{r}
+set.seed(3939889)
+r2.0 <- function(sig){
+  x <- seq(1,10,length.out = 100)        # our predictor
+  y <- 2 + 1.2*x + rnorm(100,0, sd = sig) # our response; a function of x plus some random noise
+  summary(lm(y ~ x))$r.squared           # print the R-squared value
+}
+
+sigmas <- seq(1, 10,length.out = 20)
+rout <- sapply(sigmas, r2.0)             # apply our function to a series of sigma values
+dt <- data.frame(sigmas, rout)
+
+library(ggplot2)
+ggplot(data=dt, aes(sigmas, rout)) +
+   geom_line(col='#FF6600', size=1.5)  +
+    geom_point() +
+    labs(y=expression(R^2), x=expression(sigma^2)) +
+    theme_classic()
+```
+
+由上面的圖可以看出，隨著$\sigma$變大，$R^2$由大變小，但是如果檢視迴歸係數，大概在1.5上下：
+```{r}
+set.seed(3939889)
+beta <- function(sig){
+  x <- seq(1,10,length.out = 100)        # our predictor
+  y <- 2 + 1.2*x + rnorm(100,0, sd = sig) # our response; a function of x plus some random noise
+  summary(lm(y ~ x))$coefficients[1,2]           # print the R-squared value
+}
+
+sigmas <- seq(1, 10,length.out = 20)
+res <- sapply(sigmas, beta)     
+dt <- data.frame(sigmas, res)
+ggplot(data=dt, aes(sigmas, res)) +
+   geom_line(col='#FF6600', size=1.5)  +
+    geom_point() +
+    labs(y=expression(beta[1]), x=expression(sigma^2)) +
+    theme_classic()
+```
+
+因此，我們真正關心的是迴歸係數，而不是$R^2$，因為後者有可能隨著$\sigma^2$變大而趨近於0，但是迴歸係數穩定增加。這說明$R^2$並不代表「模型適合度」。
+
+為什麼依變數的變異程度變大，而其他變數不變，$R^2$會變小？因為$Y$的變異數變大的同時，SSE雖然變大，但是SST也變大。借用上面的語法舉其中兩個$\sigma$為例：
+```{r}
+set.seed(5525252)
+Y.pre <- function(sig){
+  x <- seq(1,10,length.out = 100)        # our predictor
+  y <- 2 + 1.2*x + rnorm(100,0, sd = sig) # our response; a function of x plus some random noise
+  m1<-lm(y ~ x)
+  return(m1$fitted.values)          # fitted values
+}
+Y.mean <- function(sig){
+  x <- seq(1,10,length.out = 100)
+  y <- 2 + 1.2*x + rnorm(100,0, sd = sig) 
+  return(mean(y))          # fitted values
+}
+Y.values <- function(sig){
+  x <- seq(1,10,length.out = 100)
+  y <- 2 + 1.2*x + rnorm(100,0, sd = sig) # our response
+  return(y)
+}
+sigmas <- c(1, 10)
+tmp1<- sapply(sigmas, Y.pre)    # apply our function 
+tmp2<- sapply(sigmas, Y.mean)
+tmp3<- sapply(sigmas, Y.values)
+library(dplyr); library(data.table)
+tmp <- data.table(Y.pre1=tmp1[,1], Y.mean1=tmp2[1], Y.values1=tmp3[,1], 
+                  Y.pre2=tmp1[,2], Y.mean2=tmp2[2], Y.values2=tmp3[,2])
+  
+tmp %>% summarise(SSR1=sum(Y.pre1-Y.mean1)^2, SST1=sum(Y.values1-Y.mean1)^2, 
+                  R.squared1=SSR1/SST1, 
+                  SSR2=sum(Y.pre2-Y.mean2)^2, SST2=sum(Y.values2-Y.mean2)^2,
+                  R.squared2=SSR2/SST2) %>%
+         kable() %>%
+  kable_styling(full_width = F)
+
+```
+
+因此當$Y$的變異數增加，雖然預測值的離散程度因此增加，也就是預測值不會集中在某一個點，但是佔所有變異量的比例可能下降，$R^2$變小。
+
+## 調整後$R^2$
+調整後的$R^2$考慮樣本數$n$以及自變數的數目$k$：
+\[
+R^2_{Adj}=1-\frac{(1-R^2)(n-1)}{n-k-1}
+\]
+
+## 幾種資料的$R^2$
+以下幾種資料的迴歸模型的$R^2$很大，但是散佈圖顯示X與Y的線性關係不一定成立。
+第一種是多數觀察值集中在左下角，少數集中在右上方：
+```{r echo=F}
+DT<-data.frame(Y=c(1,1,1,1,1,2,2,2,2,2,3,3,3,10),
+X=c(1,2,1,1,2,1,2,1,3,1,2,3,1,11))
+```
+
+```{r, fig.cap="\\label{fig:r2plot1}R2散佈圖1"}
+library(ggplot2)
+ggplot(DT, aes(x=X, y=Y)) +
+  geom_point(size=1.5) +
+  geom_smooth(method='lm') +
+  theme_bw()
+m1 <- lm(Y ~ X, data=DT); summary(m1)
+```
+
+第二種是觀察值呈現非線性關係：
+```{r echo=F}
+DT<-tibble(
+X=c(1,2,1,1,2,1,2,1,3,1,2,3,1,3,5,5,5,6,4,4,4,6,6,6),
+Y=X^2)
+```
+
+```{r, fig.cap="\\label{fig:r2plot2}R2散佈圖2"}
+library(ggplot2)
+ggplot(DT, aes(x=X, y=Y)) +
+  geom_point(size=1.5) +
+  geom_smooth(method='lm') +
+  geom_line(col='red3') +
+  theme_bw()
+m2 <- lm(Y ~ X, data=DT); summary(m2)
+```
+
+
+第三種是多數的觀察值呈現線性關係，但是少數的觀察值並不在迴歸線附近：
+```{r echo=F}
+DT<-tibble(X=c(rnorm(40, 0, 1)),
+Y=c(4*X+runif(40, 0, 2) )
+)
+DT<-tibble(X=c(DT$X, -2,-1.9, -2, -2.1, -2.2), Y=c(DT$Y, 0, 0, -0.1, 0.5, 0.4))
+```
+
+```{r, fig.cap="\\label{fig:r2plot3}R2散佈圖3"}
+library(ggplot2)
+ggplot(DT, aes(x=X, y=Y)) +
+  geom_point(size=1.5) +
+  geom_smooth(method='lm') +
+  theme_bw()
+m3 <- lm(Y ~ X, data=DT); summary(m3)
+```
+
+由以上三個圖可以看出，$R^2$只能詮釋為自變數跟依變數之間的相關，不能視為模型適合資料的程度，也不能做為判斷模型的標準。
+
+<hr>
+# 作業
+<p1>
+1. 請針對`mtcars`這筆資料的<span style="font-weight:bold;">hp</span>以及<span style="font-weight:bold;">mpg</span>繪製散佈圖與迴歸線圖，並且計算迴歸係數</p1>
+```{r include=F}
+d <- mtcars
+fit <- lm(mpg ~ hp, data = d)
+summary(fit)
+d$predicted <- predict(fit)   # Save the predicted values
+d$residuals <- residuals(fit) # Save the residual values
+
+library(ggplot2)
+ggplot(d, aes(x = hp, y = mpg)) +  # Set up canvas with outcome variable on y-axis
+  geom_point()  
+ggplot(d, aes(x = hp, y = mpg)) +
+  geom_point() +
+  geom_point(aes(y = predicted), shape = 1)  # Add the predicted values
+ggplot(d, aes(x = hp, y = mpg)) +
+  geom_segment(aes(xend = hp, yend = predicted)) +
+  geom_point() +
+  geom_point(aes(y = predicted), shape = 1)
+library(ggplot2)
+ggplot(d, aes(x = hp, y = mpg)) +
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +  # Plot regression slope
+  geom_segment(aes(xend = hp, yend = predicted), alpha = .2) +  # alpha to fade lines
+  geom_point() +
+  geom_point(aes(y = predicted), shape = 1) +
+  theme_bw()  # Add theme for cleaner look
+```
+
+<p1>
+2. 請使用`UsingR`的`babies`這筆資料，估計年齡(age)與身高(ht)對於嬰兒重量(wt)的影響。注意這些變數有一定的範圍。</p1>
+```{r include=F}
+library(UsingR)
+babiesnew <- filter(babies, ht<99, age <99, wt< 999)
+with(babiesnew, lm(wt ~ age + ht))
+```
+
+<p1>
+3.請問在學生成績的資料(studentsfull.txt)中，成績與性別有關嗎？</p1>
+```{r include=F}
+stu <- read.table("studentsfull.txt", header=T)
+M1<-with(stu, lm(Score ~ Gender))
+summary(M1)  # insignificant
+```
+
+<p1>
+4. 請問在`nym.2002`資料中，性別與年齡會影響完成馬拉松的時間嗎？</p1>
+```{r include=F}
+NYM <- with(nym.2002, lm(time ~ gender + age))
+summary(NYM)
+#time = 241.45-29.39*gender+1.22*age both significant
+```
+
+<p1>5. 接續上一題，請加入性別與年齡的交互作用項，並且討論結果。</p1>
+
+```{r include=F}
+NYM2 <- with(nym.2002, lm(time ~ gender + age + age:gender))
+summary(NYM2)
+#time = 237.55-24.1*Male+1.33*age-0.144*Male_age
+```
+
+# 更新日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

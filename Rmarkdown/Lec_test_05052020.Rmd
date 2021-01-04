@@ -1,0 +1,1843 @@
+---
+title: "社會科學統計方法"
+subtitle: 統計估計、假設檢定、變異數分析
+header-includes:
+     - \usepackage{fancyhdr}
+     - \setlength{\headheight}{15.2pt}
+     - \pagestyle{fancy}
+     - \fancyhead[LE,RO]{蔡佳泓}
+     - \fancyfoot{}
+     - \chead{\textbf{社會科學統計方法}}
+     - \fancyhead[LO,RE]{\leftmark}
+     - \cfoot{\thepage}
+     - \usepackage{amsmath}
+     
+author: "蔡佳泓"
+job: "東亞所"
+date: '5/5/2020'
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  
+classoption: "hyperref,"
+always_allow_html: yes
+
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+\listoftables
+\listoffigures
+\end{center}
+
+
+```{r include=FALSE}
+library(showtext)
+showtext.auto(enable = TRUE)
+font_add("SimSun","Songti.ttc")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "left")
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+library(haven); library(foreign)
+library(reshape2)
+library(ggstatsplot)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+
+# 課程目標
+我們用樣本統計量來估計母體參數，例如平均數、標準差。統計估計可以分成點估計以及區間估計。
+
+本週上課將介紹統計估計的意義，如何建立區間估計，以及如何檢證連續變數的平均值是否不等於0或者其他特定值。例如我們想知道五種樹木的平均樹圍是否有差異：
+
+```{r echo=TRUE}
+m1<-aov(circumference ~ Tree, data=Orange )
+summary(m1)
+```
+結果顯示五種樹木的平均樹圍並沒有統計上的顯著差異。
+
+---
+
+# 母體與樣本
+
+研究某個現象時，我們假設這個現象來自於看不到的母體，要形容這個看不到的母體，我們會用這個母體的平均值以及離散程度這兩個參數。我們相信雖然我們永遠無法真正知道母體平均值以及離散程度，但是透過隨機抽樣的樣本，我們可以估計這兩個參數。
+
+## 點估計步驟
+ 1. 抽取代表性的樣本
+ 2. 選擇估計式(estimator)
+ 3. 計算統計量的值
+ 4. 以樣本統計量推論母體參數
+
+
+**估計式的選擇標準**
+  
+  1. 無偏估計：樣本統計量是否等於母體參數？
+  2. 有效性：樣本統計量的平均平方誤差是否最小？
+  3. 穩定(Consistency):當樣本數夠大時，統計樣本的分佈是否接近母體？
+  4. 常態(Asymptotic Normality): 當樣本數夠大時，統計樣本的分佈是否接近常態分佈？
+ 
+### 無偏估計
+
+  - 偏誤是樣本估計$\hat{\theta}$與母體$\theta$之間的差距。
+
+  - $\text{Bias}(\hat{\theta})=E[\hat{\theta}-\theta]=E[\hat{\theta}]-\theta$
+
+  - 無偏估計成立惟有$\text{Bias}(\hat{\theta})=0\Longleftrightarrow \hat{\theta}=\theta$
+ 
+ - 根據以上四個原則可以評估什麼是好的統計樣本。不一定每個統計樣本都符合四種條件。
+
+ - 以下四種估計平均值的方式分別為:
+ 1. 用其中一個樣本的平均數當做母體平均數：
+ 
+ $$\hat{\mu_{1}}=Y_{1}$$
+ 
+ 2.  用一個常數當做母體平均數：
+ 
+ $$\hat{\mu_{2}}=c$$
+ 
+ 3. 用樣本平均數的平均數做為母體平均數：
+ 
+ $$\hat{\mu_{3}}=\bar{Y_{n}}\equiv \frac{1}{n}(Y_{1}+Y_{2}+\cdots +Y_{N})=\mu$$
+ 
+ 4. 分母+1的平均數做為母體平均數：
+ 
+ $$E[\hat{\mu_{4}}]\equiv \frac{1}{n+1}(Y_{1}+Y_{2}+\cdots +Y_{N})=\frac{n}{n+1}\mu$$
+
+**四種估計方式可分別計算平均數如下：**
+
+ - $E[\hat{\mu_{1}}]=E[Y_{1}]=\mu$
+ - $E[\hat{\mu_{2}}]=c$
+ - $E[\hat{\mu_{3}}]=\frac{1}{n}(E[Y_{1}]+E[Y_{2}]+\cdots +E[Y_{n}])=\frac{1}{n}(\mu+\mu+\cdots +\mu)=\mu$
+ - $E[\hat{\mu_{4}}]=E[\frac{1}{n+1}(Y_{1}+\cdots +Y_{n})]=\frac{1}{n+1}(E[Y_{1}]+E[Y_{2}]+\cdots +E[Y_{N}])=\frac{n}{n+1}\mu$
+
+$\blacktriangleright$由以上推導得知，只有$\hat{\mu_{1}}$與$\hat{\mu_{3}}$是無偏估計。
+
+### 有效性
+
+ - 在沒有偏誤的樣本估計中，選出一個$\hat{\theta}$有較小的變異的抽樣分布。
+ 
+ $\hat{\theta_{1}}$ 比 $\hat{\theta_{2}}$更穩定，如果 $V(\hat{\theta_{1}})< V(\hat{\theta_{2}})$
+ 
+ - 樣本統計的抽樣分佈的標準差稱為標準誤，也就是
+ 
+ $$\sqrt{V[\hat{\theta}]}$$
+
+回顧四種估計方式：
+
+ 1. 用其中一個樣本的平均數當做母體平均數：$\hat{\mu_{1}}=Y_{1}$
+ 2. 用一個常數當做母體平均數：$\hat{\mu_{2}}=c$
+ 3. 用樣本平均數的平均數做為母體平均數：$\hat{\mu_{3}}=\bar{Y_{n}}\equiv \frac{1}{n}(Y_{1}+Y_{2}+\cdots +Y_{N})$
+ 4. $\hat{\mu_{4}}\equiv \frac{1}{n+1}(Y_{1}+Y_{2}+\cdots +Y_{N})$
+
+### 變異數
+
+比較四種估計方式的變異數：
+
+ 1. $V[\mu_{1}]=V[Y_{1}]=\sigma^2$（$Y$的變異數）
+ 2. $V[\hat{\mu_{2}}]=V[c]=0$
+ 3. $V[\hat{\mu_{3}}]=V[\frac{1}{n}(Y_{1}+Y_{2}+\cdots +Y_{N})]
+=\frac{1}{n^2}(V[Y_{1}]+\cdots +V[Y_{n}])
+=\frac{1}{n^2}(\sigma^2+\cdots +\sigma^2)=\frac{1}{n}\sigma^2$
+ 4. $V[\hat{\mu_{4}}]=\frac{n}{(n+1)^2}\sigma^2$
+
+$\blacktriangleright$比較$\hat{\mu_{1}}$以及$\hat{\mu_{3}}$, $\hat{\mu_{3}}$的抽樣分佈變異數較小。
+
+
+### Mean Squared Error
+
+ - 在無偏估計中選擇一個穩定的樣本統計的標準是誤差平方的平均值(Mean Squared Error)
+
+ $$MSE(\hat{\theta})=E[(\hat{\theta}-\theta)^2]=Bias(\hat{\theta})^2+V(\hat{\theta})=
+[E(\hat{\theta})-\theta]^2+V(\hat{\theta})$$
+
+\textbf{數理分析}
+
+ 1. $MSE(\hat{\mu_{1}})=\sigma^2$   
+ 2. $MSE(\hat{\mu_{2}})=(c-\mu)^2$
+ 3. $MSE(\hat{\mu_{3}})=E[(\hat{\mu_{3}}-\mu)^2]=\text{Bias}(\hat{\mu_{3}})^2+V(\mu_{3})=0+\frac{\sigma^2}{n}$
+ 4. $MSE(\hat{\mu_{4}})=E[(\hat{\mu_{4}}-\mu)^2]=Bias(\hat{\mu_{4}})^2+V(\mu_{4})=\text{Bias}(\frac{n}{n+1}\mu)^2+\frac{n}{(n+1)^2}\sigma^2=\frac{1}{(n+1)^2}\mu^2+\frac{n}{(n+1)^2}\sigma^2=\frac{\mu^2+n\sigma^2}{(n+1)^2}$
+ 
+ $\blacktriangleright$ $\hat{\mu_{1}}$ 與 $\hat{\mu_{3}}$ 都是無偏但是後者的誤差平方的平均值較小。
+ 
+ $\blacktriangleright$ $\hat{\mu_{3}}$與$\hat{\mu_{4}}$很難說哪一個誤差平方的平均值較小，但是後者不是無偏估計。
+
+### 樣本數趨近無限大的特性
+
+ - 當樣本數在一定的規模時，樣本統計的無偏以及穩定特性都成立。
+ - 當樣本數趨近無限大時，抽樣分佈會趨近於特定的區間，而樣本統計系列$\theta_{1},\cdots \theta_{n}$ 則會趨近於特定的數，例如$\mu$.
+ 
+### 穩定
+
+ - 穩定的樣本估計是$\theta_{1},\cdots \theta_{n}$會聚合在母體參數$\theta$，當$n\rightarrow \infty$，也就是
+ 
+\begin{center}
+${\mathrm {plim}}_{n\rightarrow \infty}\theta_{n}=\theta$
+\end{center}
+
+
+ - 理論上，可以分析$E[\theta_{n}]\rightarrow \theta$以及$V[\theta_{n}]=0$是否為真。
+ - 也可以用模擬的方式檢驗是否當樣本數增加，抽樣分佈是否趨近一直線。 例如圖一與圖二。
+
+![第三種與第四種樣本統計之模擬圖（樣本數=20）](./Fig/unbiasedness_vbig.jpg){width=500px, height=300px}
+
+![第三種與第四種樣本統計之模擬圖（樣本數=2000）](./Fig/unbiasedness_vsmall.jpg){width=500px, height=300px}
+ 
+ - 在樣本數趨近於無限大時，樣本統計的抽樣分佈會趨近於特定值。也就是變異數趨近於0。
+ 
+ - $\hat{\mu_{3}}$是無偏且穩定之樣本統計，$E[\hat{\mu_{3}}]=\mu$. $\hat{\mu_{4}}$是偏差但穩定之樣本統計。
+ 
+### Weak Law of Large Numbers
+
+弱大數法則：如果有$X_{1}, X_{2},\cdots X_{n}$等一系列的變數，彼此互相獨立，每依變數的平均數等於母體參數$\mu$。對$\epsilon>0$，$\bar{M_{n}}$為平均數$\frac{M_{1}+M_{2}+\cdots +M_{n}}{n}$
+
+當$n\rightarrow \infty$
+\begin{center}
+$Pr(|\bar{M_{n}}-\mu|\geq \epsilon)=\text{Pr}(|\frac{X_{1}+\cdots +X_{n}}{n}-\mu|\geq \epsilon)\rightarrow 0$
+\end{center}
+ 
+ - 以上的等式意義為當$n$趨近無限大，樣本平均數與母體平均數之間將沒有差異。
+ - 如果樣本數 $n$ 夠大，那麼 $M_{n}$ 的分佈將在 $\mu$ 的附近，或者是 $[\mu-\epsilon,\mu+\epsilon]$這個區間
+ - 當$n\rightarrow \infty$，樣本平均數會收斂於母體參數，也就是期望值。
+
+### Strong Law of Large Numbers
+強大數法則：如果有$X_{1}, X_{2},\cdots X_{n}$等一系列的變數，彼此互相獨立，母體參數為$\mu$。對$\epsilon>0$，$\bar{X_{n}}$為平均數，則有以下結果：
+
+\begin{center}
+${\mathrm {lim}}_{n\rightarrow \infty}\text{Pr}(|\bar{X_{n}}-\mu|\geq \epsilon)=0$
+\end{center}
+
+或者是
+
+\begin{center}
+$Pr({\mathrm {lim}}_{n\rightarrow \infty}|\bar{X_{n}}=\mu)=1$\\
+\end{center}
+
+ - 強大數法則的意義為當$n\rightarrow \infty$，樣本平均數等於母體參數的機率會收斂於1。
+ 
+## 母體平均數的估計
+ 
+ - 身高、體重、智商來自於常態分佈的母體，平均數為$\bar{X}=\frac{X_{1}+\ldots+X_{n}}{n}$，機率分佈為$f(X)=\frac{1}{\sigma\sqrt{2\pi}}\cdot e^{\frac{-(x-\mu)^2}{2\sigma^2}}$。
+ - $\bar{X}\sim N(\mu, \frac{\sigma^2}{n})$
+ - $\text{P}(\bar{X}-\mu \leq 1.96\sigma_{\bar{X}})=0.95$
+
+## 母體比例的估計
+
+ - 在$n$次獨立重複伯努利試驗中，事件$X$發生的次數為
+$n_{x}$。$\frac{n_{x}}{n}$為事件$X$發生的機率事件$X$在每次試驗中發生的母體機率為$p$。對任意正數$\epsilon>0$，以下等式成立：
+
+\begin{center}
+${\mathrm {lim}}_{n\rightarrow \infty}\text{Pr}(|\frac{n_{x}}{n}-p|< \epsilon)=1$
+\end{center}
+
+ - 強大數法則的意義為當$n\rightarrow \infty$，樣本平均數等於母體參數的機率會收斂於1。請見圖3。
+ 
+![二元變數之抽樣分佈模擬圖](./Fig/unbiasbinomial41.jpg){width=500px, height=300px}
+
+ - 丟硬幣100次，其中得到52次正面、48次反面。我們對於母體的平均數估計是$\frac{52}{100}\cdot 1+\frac{48}{100}\cdot 0=0.52$。
+  
+ - 如果我們相信母體平均數是0.52，那麼擲這枚硬幣10次，其中會得到6次正面的機率是：$\frac{10!}{6!4!}(0.52)^6\cdot (1-0.52)^4=$
+
+```{r}
+p=0.52; n=10; x=6
+(factorial(n))/(factorial(x)*factorial(n-x))*p^x*(1-p)^4
+```
+
+
+ - 假設我們抽樣100個同學，抽50次，而且我們相信女生佔了52%，那麼這50套樣本當中，有多少套的樣本，女生剛好52人？
+
+```{r}
+set.seed(116)
+m = 50; n= 100; p = .52;
+phat = rbinom(m,n,p)/n
+phat
+```
+
+ - 我們排序50次的結果，然後以點狀圖表示：
+
+```{r fig.cap="\\label{fig:dotchart1}二項分布抽樣之點狀圖"}
+dotchart(sort(phat), pch=16, col='#CCFF00', yaxt='n', xaxt='n',   
+  ylab='',xlab=expression(paste("", hat(p))), cex.lab=1.8)
+abline(v = 0.52, lwd=1.5, col='red3', lty = 2)
+mtext('0.52',1)
+```
+
+ - 圖 \ref{fig:dotchart1} 呈現出抽樣的結果，涵蓋小於0.45到大於0.6，但是只有幾個等於0.52。換句話說，抽樣得到的估計點，雖然理論上都是無偏估計，但是實際上與母體參數可能有一些不同。
+
+## 中央極限定理
+
+ - 有$X_{1}, X_{2},\cdots X_{n}$等一系列的變數，彼此互相獨立，母體參數為$\mu$, $\sigma^2<\infty$時，對任何隨機變數的母體分佈下列公式成立：
+
+\begin{center}
+$\sqrt{n}(\bar{X_{n}}-\mu)\xrightarrow{d} N(0, \sigma^2)$
+\end{center}
+
+
+ - $n$變大，$\sqrt{n}$倍的樣本平均數將會聚合在常態分佈。
+ - 因為$Var[ax]=a^2Var[x]$,也就是對一個變數乘上$a$倍,它的變異數便是乘上$a^2$倍。所以
+
+\begin{align*}
+1/\sigma \cdot \sqrt{n}(\bar{X_{n}}-\mu)  \rightarrow 1/\sigma^2\cdot N(0, \sigma^2)=N(0,1)\\
+\end{align*}
+
+\begin{align}
+\frac{1}{\sigma}\cdot \sqrt{n}(\bar{X_{n}}-\mu)\nonumber \\
+& = \frac{\sqrt{n}(\bar{X_{n}}-\mu)}{\sigma}\nonumber \\
+& = \frac{1/\sqrt{n}\cdot \sqrt{n}(\bar{X_{n}}-\mu)}{1/\sqrt{n}\cdot \sigma}\nonumber  \\
+& =\frac{\bar{X_{n}}-\mu}{\frac{\sigma}{\sqrt{n}}}\label{eq:clt}
+\end{align}
+
+根據方程式(\ref{eq:clt})
+
+\[Z_{n}\equiv \frac{\bar{X}_{n}-E[\bar{X}_{n}]}{\sqrt{V[\bar{X}_{n}]}}=\frac{\bar{X}_{n}-\mu}{\sigma/\sqrt{n}}\xrightarrow{d}{\mathit N}(0,1)\]
+
+
+ - 中央極限定理可以應用到樣本統計($\bar{X}_{n}$)。
+ - 當$n$到一定規模時，標準化常態分佈(Standardized Normal Distribution)成立
+
+\begin{center}
+$\frac{|\bar{X}_{n}-\mu|}{\sigma/\sqrt{n}}\sim N(0,1)$
+\end{center}
+
+意謂著
+
+\begin{center}
+$\bar{X}_{n}\sim N(\mu,\sigma/\sqrt{n})$
+\end{center}
+
+ - 當樣本規模夠大時，不論是來自於哪一種分佈，樣本統計會形成常態分佈的抽樣分佈。
+
+ - 常態分佈的抽樣分佈可以用標準常態分佈表示，$\text{Z}\sim \text{N}(0, 1)$。我們用圖 \ref{fig:ztwotail} 表示信賴水準0.95的區間：
+
+```{r fig.cap="\\label{fig:ztwotail}標準常態分佈信賴水準0.05的區間", echo=FALSE}
+plot.new()
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+plot(x, y, type="n", xlab = "", ylab = "", main = "")
+lines(x, y)
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05; sd=1; mean=0
+lower_bound <- 0-qnorm(1-alpha/2, mean, sd)
+upper_bound <- 0+qnorm(1-alpha/2, mean, sd)
+bounds_filter <- x >= lower_bound & x <= upper_bound
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+ 
+x_polygon <- c(lower_bound, x_within_bounds, upper_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+ 
+polygon(x_polygon, y_polygon, col = "#10aaee")
+probability_within_bounds <- pnorm(upper_bound, , mean, sd) - 
+       pnorm(lower_bound, mean, sd)
+text <- paste("p(", lower_bound, "< p <", upper_bound, ") =", signif(probability_within_bounds, digits = 3))
+ 
+# Display the text on the plot. The default "side" parameter is 3, representing the top of the plot.
+mtext(text)
+```
+
+ - 圖 \ref{fig:ztwotail} 顯示每一個Z值對應的機率密度。我們可以畫$\text{Pr}(X\leq z)$的累積機率圖如圖 \ref{fig:zcum}。
+
+```{r fig.cap="\\label{fig:zcum}Z值累積機率圖"}
+plot.new()
+zx<-seq(-3, 3, length.out=100)
+cat("P(Z=-3)=", pnorm(zx[1], 0, 1),"\n")
+cat("P(Z=0)=", pnorm(zx[50], 0, 1),"\n")
+cat("P(Z=-3)=", pnorm(zx[100], 0, 1))
+plot(zx, pnorm(zx, 0, 1), cex=0.3, col="#ea1021")
+abline(h=pnorm(zx[50], 0, 1), v=0 )
+```
+
+ - 二項分布指的是在$n$次的伯努力實驗中，如果用$X$隨機變數代表事件為真的次數，而且已知成功機率為$p$，當$X=k$的機率是：${n}\choose{k}$ $\times p^{k}(1-p)^{n-k}$。我們用圖 \ref{fig:pttwotail} 表示當$X$從0到100而次數固定為100以及母體機率為0.5，對應的機率類似常態分佈，但是實際上這不是機率密度分佈，而是機率質量分佈，因為$X$並不是連續變數：
+
+```{r fig.cap="\\label{fig:pbtwotail}二項分佈"}
+plot.new()
+k <- c(0 : 100)
+size=100; pb=0.5
+y <- dbinom(k, size=size, prob=pb)
+plot(k, y,  xlab = "count", ylab = "Pr(X=k)", type="n", main = "")
+lines(k, y, col="#0011aa")
+```
+
+ - 圖 \ref{fig:pbcum} 則是表示二項分佈$\text{Pr}(X\leq k)$的機率，也就是$\sum_{x\leq k}\text{P}(X=k)$的機率：
+
+```{r fig.cap="\\label{fig:pbcum}二項分佈累積機率"}
+plot.new()
+k <- c(0 : 100)
+size=100; pb=0.5
+y <- pbinom(k, size=size, prob=pb)
+plot(k, y,  xlab = "count", ylab = "Pr(X=k)", type="n", main = "")
+lines(k, y, col="#aa0022")
+```
+
+
+## 信賴區間
+
+ - 雖然點估計是無偏估計，但是區間估計比點估計可靠。
+ - 區間估計需要考慮變數的平均數的變異程度，因為我們每次抽出的樣本所得到的平均數不會都相同，所以$\bar{X}$的變異數$\sigma_{\bar{X}}$的大小會影響區間估計。
+ - 區間的信賴水準(confidence level)以$1-\alpha$表示，$\alpha=0.05$時，代表信賴水準為0.95或者$95\%$。
+  - 因此，信賴區間是在一個既定信賴水準構成的區間，包含樣本統計量以及抽樣誤差。
+  - 步驟：
+  
+  1. 選擇估計式、計算估計值
+  2. 取得樣本統計量的抽樣分配，例如常態分配、t分配。在常態分佈而且信賴水準為$95\%$時，母體參數$\mu$與樣本平均值之間的差距，應該不會大於$1.96*\sigma_{\bar{X}}$。
+  3. 得出母體參數的信賴區間
+  4. 得出母體參數的結論
+ 
+ - 我們用區間估計表示抽樣的結果，也就是點估計加上一定的區間。
+
+```{r fig.cap="\\label{fig:interval1}區間估計圖"}
+set.seed(116)
+m = 50; n= 100; p = .52;
+phat = rbinom(m,n,p)/n
+SE = sqrt(phat*(1-phat)/n)
+alpha = 0.05;zstar = qnorm(1-alpha/2)
+cat("zstar=", zstar)
+matplot(rbind(phat - zstar*SE, phat + zstar*SE),
+  rbind(1:m,1:m), type="l", lty=1,
+xlab=expression(paste(hat(p)-z,"*",SE,",  ", hat(p)+z,"*",SE)), ylab="")
+abline(v=p) 
+```
+
+這個圖 \ref{fig:interval1} 是由以下幾個參數所組成：
+
+ - $\hat{p}$ 表示每一套樣本當中，女生的比例
+ - SE表示樣本的標準誤=$\sqrt{\frac{p(1-p)}{n}}$ 
+ - $\alpha$(alpha)表示我們估計時容許的抽樣誤差，也稱為顯著水準(significance level)，顯著水準越小，代表誤判虛無假設成立的機會越小。一般設定為0.05或是$5\%$，分成左右兩邊各是0.025 
+ - $z^{*}$表示一定的顯著水準下，對應的z值。顯著水準越大，z值越小。z值來自平均為0，變異數為1的分佈。 
+  - $z^{*}\cdot SE$表示一定顯著水準下，涵蓋母體參數的上下限。顯著水準越小、範圍越大、區間越容易涵蓋母體參數。
+  - 從這個圖可以看出，大部分的線跨過0.52這條垂直線，代表大部分抽樣的結果，涵蓋了母體為0.52這個參數。
+  - 因為區間估計比點估計來得周全，所以我們在檢定平均數或者平均數差異時，將使用區間估計。
+ - 標準誤表示為$\frac{\sigma}{\sqrt{n}}$。連續變數的$\sigma$的無偏估計是$s=\frac{\sum(X_{i}-\bar{X})^2}{n-1}$。二元變數則是$\sqrt{p(1-p)}$。
+
+
+整理以上的資訊可以得到：
+
+ - $\hat{p}$的抽樣分配寫成：$\hat{p}\sim N(p, \frac{p(1-p)}{n})$。當$\hat{p}=0.5$時，$\frac{p(1-p)}{n}$會最大，也就是抽樣誤差會最大，避免低估所以如果我們不知道母體比例$p$，可以先以$\hat{p}=0.5$代入。
+ - 利用$Z$分配求得$\hat{p}$與$p$的抽樣誤差為：$\text{P}(|\hat{p}-p|\leq Z_{\alpha/2}\frac{p(1-p)}{n}) =1-\alpha$
+ - 因此，母體比例$p$的信賴區間為：$[\hat{p}-Z_{\alpha/2}\frac{p(1-p)}{n}\leq p\leq \hat{p}+Z_{\alpha/2}\frac{p(1-p)}{n}]$
+ 
+### 母體平均數之區間估計（變異數已知）
+
+**求取Z值**
+ - 假設 Z 為標準常態分佈的隨機變數，請問 Z ≥ 1.27 的機率為多少? 
+
+```{r}
+pnorm(1.27)
+1-pnorm(1.27)
+```
+
+**平均睡眠時間**
+
+  - 睡眠時間的平均值為6.5小時
+  
+  - 標準差: 0.5小時
+  
+  - 樣本數: 100
+  
+  - 計算標準誤：
+  
+$$\sigma_{\bar{X}}=\frac{\sigma}{\sqrt{n}}=0.5/10=0.05$$
+
+   - 因為在常態分佈而且信賴水準$95\%$時，$|\bar{X}-\mu|\leq 1.96*\sigma_{\bar{X}}$，所以
+   
+   $$|6.5-\mu|\leq 1.96*0.05=0.098$$
+ 
+ 因為
+\begin{equation*}
+ |a-b|=
+ \begin{cases}
+ a-b & \text{if}\quad a-b\geq 0\\
+ b-a & \text{if}\quad a-b\leq 0
+ \end{cases}
+\end{equation*}
+ 
+ 所以
+ \begin{equation*}
+ |6.5-\mu|=
+ \begin{cases}
+ 6.5-\mu\leq 0.098 & 6.5-0.098=6.402\leq \mu \\
+ \mu-6.5\leq 0.098 & \mu \leq 6.5+0.098=6.598
+ \end{cases}
+\end{equation*}
+ 
+ 因此，睡眠的平均時間應該落在$6.402\leq \mu \leq 6.598$
+ 
+### 母體比例的區間估計（變異數未知）
+  
+  - 樣本數: 1013
+  - 滿意政府的人數為466
+  
+  1. 計算樣本比例：$\hat{p}=466/1013=0.46$
+  2. 決定信賴水準：$\alpha=0.05$
+  3. $z_{\alpha/2}=1.96$
+  
+```{r}
+alpha=0.05
+zstar=-qnorm(alpha/2)
+cat("z value=", zstar)
+```
+
+  4. 95\%信賴區間：
+
+\begin{align*}
+\hat{p}\pm 1.96\cdot \sqrt{\frac{0.46\cdot0.54}{1013}} & = 0.46\pm 1.96*0.015 \\
+   & = 0.46\pm 0.03
+\end{align*}
+
+  5. 結論：母體比例區間估計為 $(0.46-0.03\leq p\leq 0.46+0.03)$
+
+### 樣本數與信賴水準
+
+  - 因為 $p=0.5$ 時，極大化標準誤 $\sqrt{\frac{p\cdot (1-p)}{n}}=\sqrt{0.25}{n}=\frac{0.5}{\sqrt{n}}$ 。
+  
+  - 如果信賴水準是0.95，$z_{\alpha/2}$經過查表或者計算，等於$1.96\approx 2$，抽樣誤差等於$z_{\alpha/2}*\sqrt{\frac{p\cdot (1-p)}{n}}\approx 2\cdot \frac{0.5}{n}=\frac{1}{\sqrt{n}}$。
+  
+  - 因此，我們通常用$\frac{1}{\sqrt{n}}$決定抽樣誤差，反過來，我們也可以先決定抽樣誤差，再來決定樣本數。
+  
+
+## t分佈區間估計
+
+雖然$s$是標準誤的無偏估計，但是$s$只是隨機亂數，並不是母體分佈。但是我們可以改用$t$分佈。$t$分布近似常態分佈，樣本數越大越接近常態分佈。
+
+以下的圖顯示$t$分佈的自由度為1, 5, 10, 30時的機率分佈，$t$分佈的自由度是$n-1$。：
+```{r}
+curve(dt(x, 30), from = -5, to = 5, col = "orange", 
+      xlab = "quantile", ylab = "density", lwd = 2)
+curve(dt(x, 10), from = -5, to = 5, col = "green2", add = TRUE, lwd = 2)
+curve(dt(x, 5), from = -5, to = 5, col = "navyblue", add = TRUE, lwd = 2)
+curve(dt(x, 1), from = -5, to = 5, col = "grey40", add = TRUE, lwd = 2)
+legend("topleft", legend = paste0("DF = ", c(1, 5, 10, 30)),
+       col = c("grey40", "navyblue", "green2", "orange"),
+       lty = 1, lwd = 2)
+```
+
+ - $t$分佈形狀取決於自由度，自由度代表已知統計值之後，觀察值可以變動的數目。$t$分佈的形狀代表它的離散程度，或者是樣本變異數，而變異數來自於樣本平均值($\bar{X}$)。當我們已知平均值，只要有一個樣本不變，其他$n-1$個觀察值改變，還是可以得到相同的平均值。所以自由度是$n-1$。
+
+以下的式子表示母體參數的上下區間的機率為$1-\alpha$：
+
+$$P(\bar{X}-t_{\alpha/2,n-1}S/\sqrt{n}<\mu<\bar{X}+t_{\alpha/2,n-1}S/\sqrt{n})=1-\alpha$$
+
+  - 三種信賴區間的$t$值表示如表 \ref{tab:ttable2}：
+```{r ttable2, echo=FALSE, warning=FALSE}
+ttable<-read.table('./ttable.txt', sep=';', header=T)
+
+  kable(ttable, booktabs=T, caption="三種信賴區間的t值") %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+
+ - `R`可以求得以上的機率，例如信賴區間為95%時，$\alpha$除以2，加上自由度：
+```{r}
+qt(0.025, 3000)
+```
+
+ - $t$分佈的區間估計的步驟：
+
+
+
+### 範例：體重平均值
+
+ - 假設10位受試者的體重資料如下，請問平均體重等於173磅嗎？
+```{r}
+weight <-c(175, 176, 173, 175, 174, 173, 173, 176, 173, 179)
+t.test(weight, mu=173)
+```
+
+ -分析顯示p-value <0.05，也就是說我們可以拒斥$\mu=173$的假設。
+那麼我們要如何一步步計算$T$值以及$t^{*}$呢？
+
+ - 先計算$T$：
+```{r}
+n=10
+x_bar=mean(weight)
+s2=sum((weight-x_bar)^2)/(n-1)
+c=173
+T=(x_bar-c)/sqrt(s2/n)
+T
+```
+
+已知$T$值，用pt(T, df)求p-value：
+```{r}
+T=2.761805
+pvalue=(1-pt(T, df=9))*2
+pvalue
+```
+
+ - 之所以要先用1減pt(T,df)再除以2，是因為T對應的累積機率值是從最左邊一直累積過來，因此右邊的部分需要用1減。減完之後除以2代表左右兩邊各一半。
+ - 或者比較$T$與$t^{*}$
+```{r}
+T=2.761805
+t.star=qt(0.975, 9)
+T-t.star
+```
+
+我們用圖 \ref{fig:twotail1} 表示信賴水準0.05的區間：
+```{r fig.cap="\\label{fig:twotail1}顯著水準0.05的區間", echo=FALSE}
+plot.new()
+x <- seq(-4, 4, length = 1000)
+y <- dt(x, 100)
+plot(x, y, type="n", xlab = "", ylab = "", main = "", axes = FALSE)
+axis(1)
+ lines(x, y)
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05; df=100
+lower_bound <- 0-qt(1-alpha/2, df)
+upper_bound <- 0+qt(1-alpha/2, df)
+bounds_filter <- x >= lower_bound & x <= upper_bound
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+ 
+x_polygon <- c(lower_bound, x_within_bounds, upper_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+ 
+polygon(x_polygon, y_polygon, col = "red")
+probability_within_bounds <- pt(upper_bound,df) - pt(lower_bound,df)
+text <- paste("p(", lower_bound, "< p <", upper_bound, ") =", signif(probability_within_bounds, digits = 3))
+ 
+# Display the text on the plot. The default "side" parameter is 3, representing the top of the plot.
+mtext(text)
+```
+
+圖 \ref{fig:twotail1}顯示，如果T=-1.98或者1.98，只有$\frac{1-0.95}{2}=0.025$的機率會發生。當T=2.76，右邊的區域剩下非常小的區域，換句話說，要觀察到T=2.76的機率非常小，如圖 \ref{fig:tvaluesmall}：
+```{r fig.cap="\\label{fig:tvaluesmall}T值等於2.76"}
+scale <- 0.1 
+x <- seq(-4, 4, scale) 
+df=100
+y <- dt(x, df) 
+plot(x, y, type = "l", main="t-Test, t = 2.76") 
+
+linepos <- 2.76 
+abline(v = linepos) 
+cutpoint <- (max(x) - linepos) / scale 
+
+xt <- x[(length(x)-cutpoint):length(x)] 
+yt <- y[(length(y)-cutpoint):length(y)] 
+
+# draw the polygon 
+
+n <- length(xt) 
+xt <- c(xt[1], xt, xt[n]) 
+yt <- c(0,yt,0) 
+polygon(xt, yt, col="red" ) 
+
+```
+
+ - T值對應的機率在曲線底下的面積是1，因此T值對應的機率可以用累積機率的方式呈現如圖 \ref{fig:cumu1}。當T=-3時，累積機率為0.0026或者0.26\%，而到了T=0的累積機率則是0.5，T=3時，就是累積機率等於1。
+ 
+```{r fig.cap="\\label{fig:cumu1}t分佈累積機率圖"}
+tx<-seq(-3, 3, length.out=100)
+cat("P(T=-3)=",pt(tx[1], df=30),"\n")
+cat("P(T=0)=",pt(tx[50], df=30),"\n")
+cat("P(T=-3)=", pt(tx[100], df=30))
+plot(tx, pt(tx, df=30), cex=0.3, col="sandybrown")
+```
+
+# 假設檢定
+
+ - 假設檢定與區間估計的原理相同，但是假設檢定多了建立假設以及驗證假設的步驟，例如我們要檢定某個樣本估計值是否等於特定常數，步驟如下：
+
+ 1. 假設$\mu=c$。
+
+ 2. 決定顯著水準$\alpha$或者信賴區間$(1-\alpha)\%$
+
+ 3. 計算自由度$n-1$
+
+ 4. 計算$T=\frac{X-c}{s/\sqrt{n}}$
+
+ 5. 計算顯著水準$\alpha$與自由度相對應的$t^{*}$值。$\alpha=5\%$、自由度等於1,000時，約為1.962
+
+```{r}
+qt(0.975, 1000)
+```
+
+ 6. 當$p(T)<\alpha$，表示會發生c的機會非常小，可以拒斥$\mu=c$的假設。
+
+ 7. 同樣的當$T>t_{*}$，表示會發生c的機會非常小，可以拒斥$\mu=c$的假設。
+
+ - 由以上步驟可知，假設檢定涉及到樣本估計值與欲檢驗值的差距，以及樣本估計的變異程度，還有信賴水準的大小。  
+ 
+## 雙尾檢定虛無假設與對立假設
+
+ - 虛無假設：假設母體參數或者其他參數為真，除非證明非真。寫成$H_{\text{0}}$。
+例如$H_{\text{0}}: \mu = 0$.
+
+ - 對立假設：相對於虛無假設，提出不同的假設，寫成$H_{\text{1}}$。例如$H_{\text{1}}: \mu \neq 0$.
+ 
+ - 假設樣本來自於常態分佈，而且抽取時互相獨立，樣本估計值除以標準誤之後形成常態分佈，因此樣本估計值與虛無假設中的母體參數之間的差距，除以標準誤之後，我們可以檢驗$T$值是否大於樣本分佈的特定信賴水準的臨界點$t^{*}$。如果大於臨界點，表示要觀察到這樣的差距的機會很小，也就是我們可以說這樣的差距統計上很顯著。換句話說，我們可以下結論說樣本估計值並不會等於虛無假設中的參數，我們不接受虛無假設。
+ 
+ - 反過來說，如果小於臨界點，表示很容易觀察到這樣的差距，也就是兩者之間沒有差距的機會很大，所以結論是虛無假設成立。
+ 
+ - 圖 \ref{fig:accept} 顯示接受域以及拒斥域。
+ 
+```{r acceptarea, echo=FALSE, fig.cap="\\label{fig:accept}拒絕域與接受域", fig.showtext=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+plot.new()
+par(xpd=NA)
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+plot(x, y, type="n", xlab = "", ylab = "", main = "", axes = FALSE)
+lines(x, y, col="sandybrown")
+
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05
+lower_bound <- 0-qnorm(1-alpha/2, 0, 1)
+upper_bound <- 0+qnorm(1-alpha/2, 0, 1)
+bounds_filter <- x >= lower_bound & x <= upper_bound
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+x_polygon <- c(lower_bound, x_within_bounds, upper_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+polygon(x_polygon, y_polygon, col = "white")
+#segments(x0 = 1.9, y0 = 0.5, x1 = 1, y1 = 0.2)
+
+low_filter <- x <= lower_bound 
+up_filter <- x >= upper_bound
+x_low <- x[low_filter]
+y_low <- y[low_filter]
+x_up <- x[up_filter]
+y_up <- y[up_filter]
+
+left.x<-c(-4, x_low, lower_bound)
+left.y<-c(0, y_low, 0)
+polygon(left.x, left.y, col = "whitesmoke")
+right.x<-c(upper_bound, x_up, 4)
+right.y<-c(0, y_up, 0)
+polygon(right.x, right.y, col = "whitesmoke")
+
+segments(x0 = 0.6, y0 = 0.1, x1 = 2.2, y1 = 0.025, lty = 2)
+segments(x0 = -0.6, y0 = 0.1, x1 = -2.2, y1 = 0.025, lty=2)
+vj=0.015
+segments(x0 = lower_bound, y0 = -0.05+vj, x1 = lower_bound, y1 = -0.15+vj)
+segments(x0 = upper_bound, y0 = -0.05+vj, x1 = upper_bound, y1 = -0.15+vj)
+segments(x0 = lower_bound, y0 = -0.1+vj, x1 = -0.6, y1 = -0.1+vj)
+segments(x0 = upper_bound, y0 = -0.1+vj, x1 = 0.6, y1 = -0.1+vj)
+
+#probability_within_bounds <- pnorm(upper_bound, 0, 1) - pnorm(lower_bound, 0, 1)
+#text <- paste("p(", lower_bound, "< p <", upper_bound, ") =", signif(probability_within_bounds, digits = 3))
+ 
+# Display the text on the plot. The default "side" parameter is 3, representing the top of the plot.
+text(-0.15, 0.1, "拒斥域", family="細明體")
+text(0, -0.1+vj, "接受域", family="細明體")
+text(0.45, 0.1, expression((paste(bold(alpha)))))
+text(0, -0.01, expression(H[0]: paste(bold(mu)==bold(mu[0]))))
+text(3.5, -0.02, expression(bold(bar(X))))
+#mtext(text)
+```
+
+## 檢驗假設結果
+
+ - Type I error: 當$H_{\text{0}}$為真，但是拒絕$H_{\text{0}}$。以$\alpha$表示:
+ 
+ 
+ $$\alpha=\text{Pr}(\text{reject}\hspace{.2em}H_{\text{0}}|H_{\text{0}}\hspace{.2em} \text{is}\hspace{.2em} \text{true})$$
+ 
+ - Type II error: 當$H_{\text{0}}$為偽，但是沒有拒絕$H_{\text{0}}$。以$\beta$表示:
+ 
+$$\beta=\text{Pr}(\text{not reject}\hspace{.2em}H_{\text{0}}|H_{\text{0}}\hspace{.2em} \text{is}\hspace{.2em} \text{false})$$
+
+ - 圖 \ref{fig:twotailleft} 顯示左側有$\alpha=0.05$的拒斥區域。當$H_{\text{0}}: \mu=\mu_{0}$為真，我們卻拒絕這個假設，我們犯錯的機率為$\alpha$。而且當$H_{\text{0}}: \mu\geq \mu_{0}$為真，我們卻拒絕這個假設，我們犯錯的機率也是$\alpha$。
+ 
+```{r TypeI, echo=FALSE, fig.cap="\\label{fig:twotailleft}第一型錯誤", fig.showtext=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+plot.new()
+par(xpd=NA)
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+#plot(x, y, xlab = "", ylab = "", type="n")
+curve(dnorm(x, 0, 1), col="sandybrown", add=T, 
+      xlab = "", ylab = "", main = "", axes=F, -4, 4)
+
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05
+lower_bound <- 0-qnorm(1-alpha/2, 0, 1)
+upper_bound <- 0+qnorm(1-alpha/2, 0, 1)
+bounds_filter <- x >= lower_bound 
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+x_polygon <- c(lower_bound, x_within_bounds, 4)
+y_polygon <- c(0, y_within_bounds, 0)
+polygon(x_polygon, y_polygon, col = "sandybrown")
+#segments(x0 = 1.9, y0 = 0.5, x1 = 1, y1 = 0.2)
+
+low_filter <- x <= lower_bound 
+up_filter <- x >= upper_bound
+x_low <- x[low_filter]
+y_low <- y[low_filter]
+x_up <- x[up_filter]
+y_up <- y[up_filter]
+
+left.x<-c(-4, x_low, lower_bound)
+left.y<-c(0, y_low, 0)
+polygon(left.x, left.y, col = "whitesmoke")
+
+segments(x0 = -2.5, y0 = 0.08, x1 = -2.1, y1 = 0.026, lty = 2)
+segments(x0 = 0, y0 = 0, x1 = 0, y1 = 0.4, lty=3)
+segments(x0 = lower_bound, y0 = 0, x1 = lower_bound, y1 = 0.4)
+
+text(0, -0.03, expression(H[0]: paste(bold(mu)==bold(mu[0]))))
+text(3.5, -0.03, expression(bold(bar(X))))
+text(-2.6, 0.1, expression(alpha==0.05))
+text(-2.8, 0.25, expression(H[0]: paste(mu)>=paste(mu[0])))
+text(-2.8, 0.2, expression(H[1]: paste(mu)<paste(mu[0])))
+text(-2.8, 0.3, 'reject')
+text(-2.3, 0.3, expression(H[0]))
+```
+
+
+
+- 圖 \ref{fig:twotailright} 顯示右側有$\beta$的拒斥區域。當$H_{\text{0}}: \mu=\mu_{0}$不為真，我們卻接受這個假設，我們犯錯的機率為$\beta$。而且當$H_{\text{0}}: \mu\leq \mu_{0}$不為真，我們卻接受這個假設，我們犯錯的機率也是$\beta$。
+ 
+```{r type2, echo=FALSE, fig.cap="\\label{fig:twotailright}第二型錯誤", fig.showtext=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+plot.new()
+par(xpd=NA)
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+#plot(x, y, xlab = "", ylab = "", type="n")
+curve(dnorm(x, 0, 1), col="sandybrown", add=T, -4,4,
+      xlab = "", ylab = "", main = "", axes=F)
+
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05
+lower_bound <- 0-qnorm(1-alpha/2, 0, 1)
+upper_bound <- 0+qnorm(1-alpha/2, 0, 1)
+bounds_filter <- x <= upper_bound 
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+x_polygon <- c(-4, x_within_bounds, upper_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+polygon(x_polygon, y_polygon, col = "sandybrown")
+
+bounds_filter <- x > upper_bound 
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+
+x_polygon2 <- c(upper_bound, x_within_bounds, 4)
+y_polygon2 <- c(0, y_within_bounds, 0)
+polygon(x_polygon2, y_polygon2, col = "white")
+
+
+low_filter <- x <= lower_bound 
+up_filter <- x >= upper_bound
+x_low <- x[low_filter]
+y_low <- y[low_filter]
+x_up <- x[up_filter]
+y_up <- y[up_filter]
+
+left.x<-c(-4, x_low, lower_bound)
+left.y<-c(0, y_low, 0)
+#polygon(left.x, left.y, col = "whitesmoke")
+right.x<-c(upper_bound, x_up, 4)
+right.y<-c(0, y_up, 0)
+#polygon(right.x, right.y, col = "whitesmoke")
+
+segments(x0 = 2.5, y0 = 0.08, x1 = 2.1, y1 = 0.026, lty = 2)
+segments(x0 = 0, y0 = 0, x1 = 0, y1 = 0.4, lty=3)
+segments(x0 = upper_bound, y0 = 0, x1 = upper_bound, y1 = 0.4)
+
+
+
+text(0, -0.01, expression(bold(mu[1])))
+text(3.5, -0.02, expression(bold(bar(X))))
+text(2.6, 0.08, expression(beta))
+text(2.4, 0.3, 'accept')
+text(3.5, 0.3, expression(H[0]: paste(bold(mu)==bold(mu[0]))))
+text(2.4, 0.25, 'accept')
+text(3.5, 0.25, expression(H[0]: paste(bold(mu)<=bold(mu)[1])))
+
+```
+
+- 雙尾檢定的虛無假設是：
+ 
+$$\text{H}_{\text{0}}: \mu = \mu_{0}$$
+
+  - 而對立假設則是：
+
+$$\text{H}_{\text{1}}: \mu \neq \mu_{0}$$
+
+### 範例
+
+ - 目前台灣的女性受雇員工的全年總薪資中位數約為45.6萬。調查一家公司，假設樣本數為102人，其中超過45.6萬的女性員工是54人，請問該公司女性員工年薪超過45.6萬的比例是否為$p=0.5$？
+
+ - 因為伯努利分佈的樣本變異數是$p(1-p)$，所以樣本標準誤的公式為：
+
+$SE=\sqrt{\hat{p}(1-\hat{p})/n}$
+
+T值的公式為：
+
+$T=\frac{\hat{p}-c}{\sqrt{\hat{p}(1-\hat{p})/n}}$
+
+ - 我們用`R`計算並且檢定：
+```{r}
+n=102
+p=54/102
+c=0.5
+T=(p-c)/sqrt(p*(1-p)/n)
+T
+```
+
+ - 輸入T值，計算對應的p值：
+```{r}
+T=0.595; n=102
+pvalue= pt(T, df=n-1, lower.tail = F)
+pvalue
+```
+
+  - 因為p值大於0.05，所以我們的樣本可能來自於$p=0.5$的母體。
+
+![雙尾檢定圖](./Fig/t_alpha1.jpg){width=500px, height=300px}
+
+ - 我們也可用 $\tt{prop.test()}$ 計算區間以及檢定（$\tt{t.test()}$ 需要原始資料）：
+```{r}
+prop.test(54, 102, p=0.5, conf.level=0.95)
+```
+
+ - 因為p-value>0.05，因此我們可以接受$c=0.5$的假設。換句話說，這一套樣本來自於$p=0.5$的母體。
+
+ - 由於`R`的 $\tt{prop.test()}$用Z值與T值相比，所以p-value會與自行運算的結果不太相同。
+
+ - 輸入T值，改用標準常態分佈計算對應的p值：
+```{r}
+T=0.595
+pvalue= pnorm(T, 0, 1)
+pvalue
+```
+
+ - 因為當T=0.5時，$p$值約為0.69，所以當T接近0.6時，$p$值也隨之增加。
+ - 雙尾檢定
+
+```{r}
+n=102; set.seed(02138)
+upper=prop.test(54, 102, p=0.5, conf.level=0.95)$conf.int[2]
+lower=prop.test(54, 102, p=0.5, conf.level=0.95)$conf.int[1]
+tibble(x=rnorm(200, 0.52, 0.05)) %>%
+  ggplot(aes(x=x)) +
+  geom_histogram(fill='gray90') +
+  geom_density(col='#0011EE') +
+  geom_vline(xintercept = c(lower, upper), lty=2, col="#EE00AA") +
+  geom_vline(xintercept = 0.52, lty=1, col="#AA1100") +
+  theme_bw()
+```
+
+### 單尾檢定
+
+ - 有時候我們需要檢定樣本平均數是否大於或者小於某一個數。例如學生的平均身高是否高於160公分，或者BMI值是否低於24。這時候我們可以用單尾檢定。單尾檢定需要把拒斥的區域集中在其中一邊，例如圖 \ref{fig:onetail1}表示拒斥區域在左尾，這是我們假設母體參數大於假設值，除非我們發現用來推論母體的樣本統計值非常小，小到落在拒斥區域，那麼我們就不接受母體參數大於假設值，也就是母體參數其實小於假設值。如果顯著水準為0.05，那麼就是右邊0.05或是左邊0.05，而不是0.025。可以想像顯著水準0.05除以2所對應的$t^{*}$ 要比0.05對應的$t^{*}$來的大。
+
+ - 左尾檢定的虛無假設是：
+ 
+$$\text{H}_{\text{0}}: \mu\geq \mu_{0}$$
+
+  - 而對立假設則是：
+
+$$\text{H}_{\text{1}}: \mu < \mu_{0}$$
+ 
+  - 也可以詮釋成當我們用平均值$\mu_{0}$來隨機抽樣，要抽到$<\mu_{0}$（左尾）或是$>\mu_{0}$（右尾）的樣本的機會是$p$值。如果$p$小於5\%，那麼我們可以說機會非常小，無法接受虛無假設成立。所以結論是我們可以接受對立假設，也就是$\mu>\mu_{0}$（左尾）或是$\mu < \mu_{0}$（右尾）。
+
+
+  - 例如過去研究宣稱某種病毒在人體表面可以生存超過5天，不管是6天、10天都比5天來得長。雖然我們懷疑這個研究發現過度誇大病毒的存活能力，但是我們除非發現的樣本統計值，換算成Z值或者t值之後小於臨界值，那麼我們才會推翻虛無假設。但是如果Z值或者t值大於臨界值，不論有多大，都符合虛無假設。
+  
+  - 通常我們設定的標準是5\%，要小於這個標準我們才拒斥虛無假設，也就是我們已經有點相信虛無假設，除非我們發現很有力的證據才能推翻虛無假設。
+  
+```{r lefttail, fig.cap="\\label{fig:onetail1}左尾檢定圖", fig.showtext=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+plot.new()
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+plot(x, y, type="n", xlab = "", ylab = "", main = "", axes = FALSE)
+axis(1)
+lines(x, y)
+
+alpha=0.05
+lower_bound <- 0-qnorm(1-alpha, 0, 1)
+upper_bound <- 0+qnorm(1-alpha, 0, 1)
+bounds_filter <- x >= -4 & x <= lower_bound
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+ 
+x_polygon <- c(-4, x_within_bounds, lower_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+ 
+polygon(x_polygon, y_polygon, col = "red")
+text(-2.6, 0.1, expression(paste(bold(alpha))))
+segments(-2.6, 0.09, -2.2, 0.02, lty=2)
+segments(0, 0, 0, 0.4, lty=2)
+
+```
+
+ - 反之，如果我們想要檢定平均數大於$\mu_{0}$，那麼可以採用右尾檢定，也就是如果我們觀察到的樣本估計值非常大，大到母體平均數很難超過它，那麼我們可以拒斥平均值小於$\mu_{0}$的虛無假設，也就是接受大於$\mu_{0}$的對立假設。
+ 
+ - 右尾檢定的虛無假設是：
+ 
+$$\text{H}_{\text{0}}: \mu\leq \mu_{0}$$
+
+  - 而對立假設則是：
+
+$$\text{H}_{\text{1}}: \mu > \mu_{0}$$
+ - 下圖表示右側的區域為0.05。
+ 
+![右尾檢定圖](./Fig/t_alpha2.jpg){width=500px, height=300px}
+
+ - 上面的圖顯示右尾的拒斥區域等於 5\%，T=1.69。
+
+```{r}
+alpha=0.05
+qt(1-alpha, df=29)
+```
+
+### 範例1
+
+ - 在 \textbf{UsingR::babies} 這筆資料中，有父親的身高資料。請問父親的平均身高顯著高於68英吋（約172公分）嗎？還是隨機誤差？請先扣掉99這個遺漏值。
+ 
+ - 因為我們感興趣的是父親身高是否高於68英吋，至於有多高並不是重點，所以我們要進行左尾的單尾檢定，對立假設是$\mu >68$，虛無假設則是：
+ 
+ $$\text{H}_{\text{0}}: \mu \leq 68$$
+ 
+ - 對立假設是
+ 
+$$\text{H}_{\text{1}}:\mu > 68 $$
+
+ - 用`R`進行左尾的單尾檢定假設時，設定$\mu$等於$\mu_{0}$，而且$\textbf{alternative}='greater'$。
+
+```{r dht}
+x <- UsingR::babies$dht
+x <- x[x<99]
+t.test(x, mu=68, alternative="greater")
+```
+
+ - 結果顯示，平均值為70.2，95\%信賴區間的左尾臨界值是70.02，高於68英吋，$p$值小於0.05，也就是說抽到的樣本其平均值會小於68的機會非常小。換句話說，我們拒斥虛無假設，並且結論父親的平均身高高於68英吋。
+ 
+ - 我們也可以手動計算
+ 
+ 1. 以$\bar{X}$為檢定統計量，上面已知$\bar{X}=70.2043$。
+ 3. 計算$Z$值
+ 
+ $$Z=\frac{\bar{X}-\mu_{0}}{S/\sqrt{n}}$$
+ 
+```{r}
+x <- UsingR::babies$dht
+x <- x[x<99]
+n=length(x); cat("n=",n, "\n")
+cat('SD=', sd(x), '\n')
+mean.x=mean(x)
+cat('Z=', (mean.x-68)/(sd(x)/sqrt(n)),'\n')
+```
+
+ - 計算出來$Z$值為20.79。接下來用\textbf{pnorm()}計算$p$值。
+ 
+```{r}
+pnorm(20.79)
+```
+ 
+ - 結果顯示，$p$值等於1，表示母體參數高於68的機會為1。我們用機率密度圖表示資料的分佈、平均值以及左尾的臨界點。
+ 
+```{r fig.cap="\\label{fig:lefttailexample}左尾檢定圖", message=FALSE, warning=FALSE}
+dht <- UsingR::babies$dht
+dht <- dht[dht<99]
+Test<-t.test(dht, mu=68, alternative="greater")
+upper=Test$conf.int[2]
+lower=Test$conf.int[1]
+tibble(dht) %>%
+  ggplot(aes(x=dht)) +
+  #geom_histogram(fill='gray90') +
+  geom_density(col='#0011EE') +
+  geom_vline(xintercept = lower, lty=2, col="#EE00AA") +
+  geom_vline(xintercept = mean(dht), col='#AA1100') +
+  theme_bw()
+```
+
+
+
+
+### 範例2
+
+ - 某家飲料工廠想要知道裝瓶的飲料是否符合包裝所標示的500ml，抽出20瓶測量其體積如下（參考[Sarah Stowell](http://www.instantr.com/2012/12/29/performing-a-one-sample-t-test-in-r/)）：
+
+```{r}
+volume<-c(484.11,459.49,471.38,512.01,494.48,528.63,
+  493.64,485.03,473.88,501.59,502.85,538.08,465.68,
+  495.03,475.32,529.41,518.13,464.32,449.08,489.27)
+```
+
+ - 因為我們感興趣的是樣本平均值是否小於500ml，所以進行右尾的單尾檢定，也就是虛無假設是樣本平均值應該等於或大於500ml。
+ 
+ - 以`R`進行$t$檢定
+
+```{r}
+t.test(volume, mu=500, alternative="less", 
+       conf.level=0.95)
+```
+
+ - 結果顯示，樣本平均值為491.6。95\%的區間估計顯示，母體平均值有可能小於501，但不見得小於500。因為$p$值為0.07，所以當從$\mu=500$的母體抽樣，要抽到平均值大於500的樣本的機會是7\%，大於我們設定的5\%。換句話說，我們無法拒斥樣本平均值應該等於或大於500ml的虛無假設。
+ 
+ - 圖 \ref{fig:ggstathist} 顯示，$p=0.140$，這是因為進行雙尾檢定，$p$值會比較大。而95\%的區間估計為(480, 504)，包含了樣本平均值491以及500，顯示兩者差異不大，都落在95\%的區間內。
+
+```{r fig.cap='\\label{fig:ggstathist}結合t檢定之長條圖', message=FALSE, warning=FALSE}
+# for reproducibility
+set.seed(123)
+
+# plot
+tibble(volume) %>%
+ggstatsplot::gghistostats(
+  data = ., 
+  x = volume, 
+  title = "", 
+  caption = substitute(paste(italic("Source:"), "")),
+  type = "robust",
+  test.value = 500, # default value is 0
+  conf.level = 0.95,
+  test.value.line = TRUE, 
+  centrality.parameter = "mean", 
+  centrality.line.args = list(color = "darkred"), 
+  binwidth = 0.8, # binwidth value (experiment)
+  messages = FALSE, # turn off the messages
+  #ggtheme = hrbrthemes::theme_ipsum_tw(), 
+  ggstatsplot.layer = F
+)
+```
+
+## 小樣本的平均數檢定
+
+ - 樣本小於30時，必須使用$t$檢定。步驟與上述的雙尾檢定以及單尾檢定一樣。
+ 
+## 母體比例的檢定 
+
+ - 母體參數可能是比例$p$，例如性別的比例、產品的不良率等等。跟區間估計一樣，檢定統計量$Z$或者$T$需要用到樣本的比例$\hat{p}$，也就是：
+ 
+ $$Z=\frac{\hat{p}-p}{\text{SE}(p)}$$
+
+其中
+
+$$\text{SE}(p)=\sqrt{\frac{p\times(1-p)}{n}}$$
+
+  1. 選定樣本分配：
+  
+  $$\hat{p}\sim N(p,\frac{p(1-p)}{n})$$
+  
+  2. 計算標準誤
+  3. 計算檢定值
+  4. 如果檢定值>0.05，則接受虛無假設。反之，則拒斥虛無假設。
+  
+### 範例
+
+  - 隨機抽樣1,000位大學生，其中615人表示希望繼續就讀研究所，請問所有學生就讀研究所的意願是否超過6成？
+  
+  - 虛無假設：
+
+$$H_{0}: P\leq 0.6$$
+
+  - 對立假設：
+  
+$$H_{1}: P>0.6$$
+
+ - 因為對立假設是$P>0.6$，所以要進行右尾檢定。我們先計算$\hat{p}$，然後計算標準誤，接著計算$T$值，並且計算$p$值。
+
+```{r}
+phat=615/1000
+p=0.6
+n=1000
+se=sqrt(p*(1-p)/n)
+T=(phat-0.6)/se
+cat("T=",T)
+cat("P=",pt(T, n-1, lower.tail = F))
+```
+
+
+## 兩個獨立母體之樣本檢定
+
+ 
+ - 我們經常需要知道兩套樣本的差異是否達到統計上的顯著水準，例如兩種教學方法的成績、兩個餐廳的評價、兩個國家人民對於民主的滿意程度等等。
+ 
+ - 從兩個獨立母體抽樣，樣本的平均數差異($\bar{X_{1}}-\bar{X_{2}}$)的抽樣分配趨近於常態分配。
+ 
+ - 如果母體的變異數未知，只有樣本的變異數，我們可以用樣本變異數做為母體變藝術的估計。
+
+
+ - 那麼如何計算兩套樣本的標準誤？公式為：
+ 
+$SE(\bar{X_{1}}-\bar{X_{2}})=\sqrt{\frac{s_{1}^{2}}{n_{1}}+\frac{s_{1}^{2}}{n_{1}}}$
+
+如果$n_{1}=n_{2}=n$，
+$SE(\bar{X_{1}}-\bar{X_{2}})=\sqrt{\frac{s_{1}^{2}+s_{2}^{2}}{n}}$
+
+如果兩者樣本數不相等，
+$SE(\bar{X_{1}}-\bar{X_{2}})=\frac{s_{1}+s_{2}}{2}\sqrt{\frac{1}{n_{1}}+\frac{1}{n_{2}}}$
+
+ - $T$值的公式為：
+
+$T=\frac{\bar{X_{1}}-\bar{X_{2}}}{SE(\bar{X_{1}}-\bar{X_{2}})}$
+
+ - 自由度：$n_{1}+n_{2}-2$
+
+### 範例
+ 
+ - 假設有兩種油漆，我們想知道這兩種油漆的效果是不是相似。兩種油漆的資料如下，
+```{r}
+sample1<-c(19.7475, 30.5562, 11.0734, 18.1730, 19.8387, 
+           14.5291, 19.4998, 18.8374, 12.6873, 14.7627,
+           18.3869, 17.9287, 17.6973, 14.3439, 10.7374, 
+           15.3563, 19.0878, 12.5745, 18.0030, 18.6004)
+
+sample2<-c(17.4715, 9.8613, 23.4827, 13.6029, 20.0386, 
+           19.6289, 24.9357, 17.8812, 12.6012, 9.7741, 
+           19.9265, 16.4178, 20.4401, 15.1119, 7.9955,
+           5.1385, 22.4969, 17.4448, 17.6675, 7.0984)
+```
+
+  - 先用箱形圖顯示兩套樣本的分佈，可以看出第一套樣本比較集中，第二套比較分散：
+  
+```{r fig.cap="\\label{fig:boxplot1}兩套樣本的盒型圖", message=FALSE, warning=FALSE}
+
+dt=data.frame(sample1, sample2)
+dt.m <- melt(dt) %>%
+ggplot(aes(x=variable, y=value)) +
+  geom_boxplot()  +
+   labs(x="Groups", y='') +
+  stat_summary(fun.y=mean, geom="point", shape=16, size=2, col='red') 
+dt.m
+```
+
+ - 以t.test()檢定假設：兩筆資料的平均數相等，或者是相減等於0?
+```{r}
+ t.test(sample1, sample2, var.equal = T)
+```
+
+ - 由以上的結果可以看出，$p>0.05$，因此我們無法拒斥兩筆資料的平均數相等的假設。結論是兩種油漆的效果非常相近。
+
+ - 根據以上公式，我們再驗算一次：
+```{r}
+n1<-length(sample1); n2<-length(sample2)
+s1<-sd(sample1); s2<-sd(sample2)
+se <-((s1+s2)/2)*(sqrt(n1^-1+n2^-1))
+T=(mean(sample1)-mean(sample2))/se
+cat('t =',T, '\n')
+pvalue=(1-pt(0.74, n1+n2-2))*2
+cat('p value =', pvalue)
+```
+
+ - 除了檢驗兩個樣本有相同的平均值，也可以檢驗一個大於另一個平均值。以上面資料為例，
+
+```{r}
+ t.test(sample1, sample2, var.equal = T, alternative = 'less')
+```
+
+ - 可以看出$p\geq 0.05$。我們不拒斥第一套樣本等於第二套樣本的平均數的假設。
+
+ - 又或者用隨機抽樣的資料驗證第一套樣本平均值小於第二套樣本平均值。
+```{r}
+set.seed(29393091)
+x=rnorm(30)
+set.seed(116)
+y=rnorm(100, sqrt(2), 1)
+t.test(x, y, alternative = 'greater')
+```
+
+ - 結果顯示$p>0.05$，因此以$\alpha=0.05$的標準，我們不拒斥第一套樣本平均值小於第二套樣本平均值的假設。
+
+## 雙樣本的比例檢定
+
+ - 如果兩個樣本都是來自二項分布，那麼我們可以檢驗比例是否相同，也就是檢驗以下的虛無假設：
+ 
+$$H_{0}:\mu_{1}-\mu_{2}=0$$
+ - 如果把0換成任意數，等於是檢驗母體比例的差異是否達到某個程度。寫成：
+
+$$H_{0}:\mu_{1}-\mu_{2}=D_{0}$$ 
+
+ - 以上的雙尾檢定可以改為單尾檢定。
+
+###範例
+
+ - 有一輛捷運，第一節車廂有50名乘客，第二節車廂有61人，第一節車廂有20位男性，第二節則有13位男性，請問兩節車廂有相同的男性比例嗎？用`R`計算如下：
+ 
+```{r}
+x1=20; n1=50; x2=13; n2=61
+prop.test(c(x1,x2), c(n1, n2))
+```
+
+  - 結果顯示，兩節車廂各有0.4以及0.21比例的男性。因為$p>0.05$，因此以$\alpha=0.05$的標準，我們接受兩節車廂有一樣男性比例的假設。
+
+## 成對樣本檢定
+
+ - 前面的雙樣本檢定假定兩套樣本互相獨立，但是有不同的平均值與標準差。如果是想要確定兩個變數來自於同一套樣本，兩次測量的平均值相等，則是進行成對樣本檢定。
+ 
+ - 例如病患服用藥物前後的病況、選手接受訓練前後的表現等等，適合進行成對樣本檢定。
+
+ - 用`R`的t.test函數，可設定paired=T，進行成對樣本檢定，虛無假設為兩次測量的平均值相等。
+
+ - 例如比較民進黨候選人在台北市第2選區在2016年的立委選舉與2019年的立委補選的各里的平均得票率是否相同：
+```{r}
+taipei<-read.csv('./taipei201619.csv', header=T, fileEncoding = 'BIG5')
+library(dplyr)
+taipei<-taipei %>% 
+  mutate(DPP2016.p=100*DPP2016/total2016, DPP2019.p=100*DPP2019/total2019)
+with(taipei, t.test(DPP2016.p, DPP2019.p, paired = T))
+```
+
+
+ - 結果顯示兩者有很大的差異，拒斥兩次選舉的平均值相減等於0的假設。
+
+ - 為了確認這個檢定結果，我們可以畫圖顯示兩次選舉的平均值。先整理成為長資料：
+```{r longtableofdpp}
+dat<- taipei %>% 
+       select('2016'='DPP2016.p', '2019'='DPP2019.p')
+dat.new <- melt(dat, variable.name = "election", value.name = "DPP") 
+dat.new <- dat.new %>% 
+           group_by(election) %>%
+           mutate(grp.mean=mean(DPP)) %>%
+           mutate(Year=as.factor(election))
+```
+
+然後使用ggplot2畫分佈圖：
+```{r fig.cap="\\label{fig:DPP}民進黨2016大選及2019補選得票率"}
+ggplot(dat.new, aes(x=DPP, color=Year)) +
+  geom_density(position="identity", alpha=.4) +
+  geom_vline(data=dat.new, aes(xintercept=grp.mean, color=Year),
+             linetype="dashed") +
+  labs(x="DPP's Vote Share", y="")
+```
+
+ - 圖 \ref{fig:DPP} 顯示發現民進黨候選人在台北市第二選區的兩次選舉的得票率，的確有相當不同的分佈以及集中趨勢。
+
+# 變異數分析
+
+ - 檢驗一個類別變數與其它連續變數(continuous variable)之間的關係，可運用One-way Anova(單因子變異數分析)，分析類別之間是否存在平均值的差異。
+
+ - Two-way Anova(雙因子變異數分析)則是有兩個以上的類別變數，分析類別之間是否存在連續變數的平均值的差異。
+
+ - Anova分析建立在三個假設：
+
+  1. 類別變數與連續變數互相獨立
+  2. 每一個類別內的連續變數呈常態分佈
+  3. 每一個類別內的連續變數的變異數相同
+
+ - Anova 的目標是比較每一組之間的離散程度跟每一類別（或是每一組）內部的離散程度。兩者相比越小，表示組跟組之間的差異越小於每一組內部的差異，因此分組的意義也越小，類別變數與連續變數的關係也越小。反之則越大。
+組間變異(SSB, sum of square between)為各組的樣本數乘以組平均減總平均的平方的加總。
+
+$SSB=\sum n_{k}(\bar{x_{k}}-\bar{x})^2$
+
+ - 組內變異(SSW, sum of square within)為各組的變異數的加總。
+
+$SSW=\sum_{k}\sum (x_{ki}-\bar{x_{k}})^2$
+
+ - 全部的變異量等於這兩者相加：
+$SST=SSB+SSW$
+
+ - 每一組之間的平均離散程度用MSB(mean square between)表示，每一類別（或是每一組）內部的離散程度用MSW(mean square within)表示。計算方式為：
+
+$MSB=SSB/df(B) \hspace{.4cm} df(B)=k-1$
+
+$MSW=SSW/df(W) \hspace{.4cm} df(W)=n-1-(k-1)=n-k$
+
+$F=\frac{MSB}{MSW}$
+
+ - 使用$F$分佈而不是$t$分佈檢驗假設成立與否。英國統計學家兼生物學家羅納德·費雪（Ronald Aylmer Fisher）發明了$F$檢驗。
+ 
+ - F 分佈的參數是兩個自由度，可畫圖 \ref{fig:fcurve} 如下：
+```{r  fig.cap="\\label{fig:fcurve}三種F分佈"}
+curve(df(x, df1=1, df2=2), from=0, to=5, ylab='')
+curve(df(x, df1=5, df2=6), from=0, to=5, col='red', add=T)
+curve(df(x, df1=20, df2=30), from=0, to=5, col='blue2', add=T)
+abline(v=1, lwd=1.5, lty=2, col='green2')
+legend('topright', c('df=1;df=2','df=5;df=6',
+                     'df=20;df=30'),
+            col=c('black',"red", "blue2"),
+            lty=c(1,1,1))
+```
+
+ - 圖片顯示自由度越大、$F$分佈圖形越接近常態分佈。
+
+ - `R`的$F$分佈有以下指令：
+
+ - df(x, df1, df1)回傳x百分比的機率 (y軸的高度)
+ - pf(q, df1, df1)回傳q百分比的累積機率
+ - qf(p, df1, df1)回傳p值的$F$值
+ - rf(n, df1, df1)回傳從$F$分佈抽樣的n個樣本
+
+ - 以Orange這筆資料為例，我們想檢驗每一種類型的樹的樹圍是否相等。先整理資料，計算平均樹圍以及標準差：
+```{r}
+Orange$tree<-factor(Orange$Tree, levels=c("1","2", "3", "4","5"))
+library(dplyr)
+mydata <- Orange %>%
+          group_by (tree) %>%
+          summarize(
+         count = n(),
+         avg = mean(circumference, na.rm = TRUE),
+         sd = sd(circumference, na.rm = TRUE)
+  ) 
+kable(mydata) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+ - 可以看出五種平均樹圍之間有一些差異。
+
+ - 用箱形圖 \ref{fig:orange} 檢視五種類型的樹圍：
+
+```{r  fig.cap="\\label{fig:orange}五種樹的樹圍"}
+p=ggplot(Orange, aes(x=tree, y=circumference)) 
+p+geom_boxplot(data=Orange, aes(color=tree)) +
+  theme_bw()
+```
+
+ - 箱形圖顯示平均數可能不相等。再用密度圖觀察是否常態分佈？
+
+```{r fig.cap="\\label{fig:boxden}箱型圖與機率密度"}
+G=ggplot(Orange, aes(x=circumference, fill=tree, alpha=0.2))
+G+geom_density() +
+   xlim(c(0, 300)) +
+   theme_bw()
+```
+
+ - 圖 \ref{fig:boxden} 顯示部分類別可能不是成常態分佈，而且離散程度可能不相等。
+
+  - 最後用aov函數進行Anova分析：
+
+```{r}
+res.aov <- aov(circumference ~ tree, data = Orange)
+# Summary of the analysis
+summary(res.aov)
+```
+
+ - 結果顯示$p>0.05$，無法拒斥五種平均樹圍相等的假設。
+
+ - 我們可以畫圖檢視變異數相等的假設：
+```{r fig.cap="\\label{fig:anovaplot}變異數圖形"}
+plot(res.aov, 1, cex=1.5, lwd=1.5)
+```
+
+ - 圖 \ref{fig:anovaplot} 顯示，每一類別的平均值跟觀察值與該平均值之間的殘差(residual)並沒有明顯的關聯。因此，變異數相等的假設成立。
+
+ - `R`另外提供Bartlett以及Levene兩種檢定變異數相等的函數。Bartlett檢驗的做法是：
+
+```{r}
+bartlett.test(circumference ~ tree, data = Orange)
+```
+
+ - Levene檢驗則是：
+```{r warning=FALSE, message=FALSE}
+library(car)
+leveneTest(circumference ~ tree, data = Orange)
+```
+
+ - 兩個檢驗結果都是不拒斥變異數相等的假設。可以先進行這兩個檢驗，再進行變異數分析。
+
+ - 雖然我們無法拒斥每一組平均數相等的假設，但是我們仍然可以用TukeyHSD函數檢驗哪些組別之間可能有差異：
+
+```{r}
+TukeyHSD(res.aov)
+```
+
+ - 結果發現每一組之間都沒有顯著的差異。
+
+# 指令整理
+
+ - $\tt{qnorm(conf, mean, sd)}$: 已知平均數、變異數，求一定信賴水準下的Z值($\text{z}_{\alpha/2}$)
+
+```{r}
+alpha=0.01; cat("conf=0.99, mean=0, sd=1, Z=", qnorm(1-(alpha/2), 0, 1),"\n")
+alpha=0.05; cat("conf=0.95, mean=0, sd=1, Z=", qnorm(1-alpha/2),"\n")
+alpha=0.1; cat("conf=0.90, mean=0, sd=1, Z=", qnorm(1-alpha/2),"\n")
+alpha=0.05; cat("conf=0.95, mean=1, sd=1, Z=", qnorm(1-alpha/2, 1, 1),"\n")
+```
+
+- 請參考圖 \ref{fig:twotailnormal} 顯示信賴區間為0.95($\alpha=0.05$)的常態分佈，以及兩側各為0.025的拒斥區域。
+ 
+```{r fig.cap="\\label{fig:twotailnormal}信賴區間0.95常態分佈圖", echo=FALSE}
+plot.new()
+x <- seq(-4, 4, length = 1000)
+y <- dnorm(x, 0, 1)
+plot(x, y, type="n", xlab = "", ylab = "", main = "", axes = FALSE)
+axis(1)
+lines(x, y)
+# Returns a vector of boolean values representing whether the x value is between the two bounds then
+# filters the values so that only the ones within the bounds are returned
+alpha=0.05
+lower_bound <- 0-qnorm(1-alpha/2, 0, 1)
+upper_bound <- 0+qnorm(1-alpha/2, 0, 1)
+bounds_filter <- x >= lower_bound & x <= upper_bound
+x_within_bounds <- x[bounds_filter]
+y_within_bounds <- y[bounds_filter]
+x_polygon <- c(lower_bound, x_within_bounds, upper_bound)
+y_polygon <- c(0, y_within_bounds, 0)
+polygon(x_polygon, y_polygon, col = "gray95")
+segments(x0 = 1.9, y0 = 0.5, x1 = 1, y1 = 0.2)
+
+low_filter <- x <= lower_bound 
+up_filter <- x >= upper_bound
+x_low <- x[low_filter]
+y_low <- y[low_filter]
+x_up <- x[up_filter]
+y_up <- y[up_filter]
+
+left.x<-c(-4, x_low, lower_bound)
+left.y<-c(0, y_low, 0)
+polygon(left.x, left.y, col = "#2a1ea0")
+right.x<-c(upper_bound, x_up, 4)
+right.y<-c(0, y_up, 0)
+polygon(right.x, right.y, col = "#2a1ea0")
+
+text(2.6, 0.1, "2.5%")
+segments(x0 = 2.5, y0 = 0.088, x1 = 2.3, y1 = 0.02)
+
+probability_within_bounds <- pnorm(upper_bound, 0, 1) - pnorm(lower_bound, 0, 1)
+text <- paste("p(", lower_bound, "< p <", upper_bound, ") =", signif(probability_within_bounds, digits = 3))
+ 
+# Display the text on the plot. The default "side" parameter is 3, representing the top of the plot.
+mtext(text)
+```
+
+- $\tt{pnorm(z, mean, sd)}$: 已知z值，平均數、變異數，求累積機率值($\text{p}(Z\leq z^{*})$)，參考圖 \ref{fig:onetail1}。
+
+```{r}
+cat("z=1.99, mean=0, sd=1, p=", pnorm(1.99, 0, 1),"\n")
+cat("z=1.96, mean=0, sd=1, p=", pnorm(1.96, 0, 1),"\n")
+cat("z=1.68, mean=0, sd=1, p=", pnorm(1.68, 0, 1),"\n")
+```
+
+- $1-\tt{pnorm(z, mean, sd)}$: 已知$z^{*}$值，平均數、變異數，求右尾機率值($\text{p}(Z\geq z^{*})$)
+
+```{r}
+cat("z=2.5, mean=0, sd=1, p=", 1-pnorm(2.5, 0, 1),"\n")
+cat("z=1.96, mean=0, sd=1, p=", 1-pnorm(1.96, 0, 1),"\n")
+cat("z=1.68, mean=0, sd=1, p=", 1-pnorm(1.68, 0, 1),"\n")
+```
+
+ - $\tt{qt(1-alpha/2, df)}$: 已知自由度，求一定信賴水準下的T值($\text{t}_{\alpha/2}$)
+
+```{r}
+n=10; alpha=0.01; cat("conf=0.99, n=10, T=", qt(1-alpha/2, n-1),"\n")
+n=10; alpha=0.05; cat("conf=0.95, n=10, T=", qt(1-alpha/2, n-1),"\n")
+n=10; alpha=0.1; cat("conf=0.90,  n=10, T=", qt(1-alpha/2, n-1),"\n")
+n=30; alpha=0.05; cat("conf=0.95, n=30, T=", qt(1-alpha/2, n-1),"\n")
+```
+ 
+ - $\tt{pt(t, df)}$: 已知自由度，求累積機率值($\text{p}(T\leq t^{*})$)
+
+```{r}
+n=10; alpha=0.01;cat("t=1.99, n=10, p=", pt(1.99, n-1),"\n")
+n=10; alpha=0.05;cat("t=1.96, n=10, p=", pt(1.96, n-1),"\n")
+n=10; alpha=0.1;cat("t=1.68, n=10, p=", pt(1.68, n-1),"\n")
+n=30; alpha=0.05;cat("t=1.68, n=30, p=", pt(1.68, n-1),"\n")
+```
+
+  - $\tt{pt(t, df)}$: 已知自由度，求右尾機率值($\text{p}(T\geq t^{*})$)
+
+```{r}
+n=10; alpha=0.01;cat("t=1.99, n=10, p=", 1-pt(1.99, n-1),"\n")
+n=10; alpha=0.05;cat("t=1.96, n=10, p=", 1-pt(1.96, n-1),"\n")
+n=10; alpha=0.1;cat("t=1.68, n=10, p=", 1-pt(1.68, n-1),"\n")
+n=30; alpha=0.05;cat("t=1.68, n=30, p=", 1-pt(1.68, n-1),"\n")
+```
+
+ - $\tt{t.test()}$: 針對原始資料，計算一定信賴水準下的信賴區間
+
+```{r}
+set.seed(02138)
+X<-rnorm(100, 0, 1)
+t.test(X, conf.level=0.95)
+#manual computing
+n=length(X)
+mean.x<-mean(X)
+SD <- sqrt(var(X)/n)
+alpha=0.05
+zstar<-qnorm(1-alpha/2)
+
+cat("conf=0.95, interval estimate=[", mean.x-zstar*SD, ",", 
+         mean.x+zstar*SD,"]")
+```
+ 
+ - $\tt{prop.test()}$: 針對有比例的原始資料，計算一定信賴水準下的信賴區間($\hat{p}\pm t_{\alpha/2}\cdot \sqrt{\frac{p\times(1-p)}{n}}$)
+
+```{r}
+set.seed(02138)
+X<-rbinom(100, 1, 0.5)#randomly drawing samples from binomial distribution
+n=length(X)
+s<-length(X[X==1])
+prop.test(s, n, conf.level = 0.95)
+#manual computing
+phat<-mean(X)
+SE <- sqrt(phat*(1-phat)/n)
+alpha=0.05
+tstar<-qt(1-alpha/2, df=n-1)
+
+cat("conf=0.95, interval estimate=[", phat-tstar*SE, ",", 
+         phat+tstar*SE,"]")
+``` 
+ 
+ - $\tt{binom.test()}$: 針對有成功數的二元資料，計算一定信賴水準下的信賴區間($\hat{p}\pm t_{\alpha/2}\cdot \sqrt{\frac{p\times(1-p)}{n}}$)，結果與$\tt{prop.test()}$相近。
+
+```{r}
+set.seed(02138)
+X<-rbinom(100, 1, 0.5)#randomly drawing samples from binomial distribution
+n=length(X)
+s<-length(X[X==1])
+binom.test(s, n, conf.level = 0.95)
+```
+ 
+# 作業
+
+**區間估計**
+
+ 1. 有一份調查的樣本數是1,000，性別的比例$\hat{p}=0.45$。請列出信賴水準為50\%, 60\%, 70\%, 80\%, 95\%的區間估計。
+```{r include=F}
+n=1000
+phat=0.45
+cl<-c(0.5, 0.6, 0.7, 0.8, 0.95)
+
+res <- prop.test(n*phat, n, conf.level = cl[1])
+
+tmp <-data.frame(lower=res$conf.int[1], upper=res$conf.int[2]) 
+
+for (i in 2:5){
+ res <- prop.test(n*phat, n, conf.level = cl[i])
+ lower=res$conf.int[1]
+ upper=res$conf.int[2]
+ tmp1 <- data.frame(lower, upper)
+ tmp <- dplyr::bind_rows(tmp, tmp1)
+}
+rownames(tmp) <-cl
+tmp
+```
+
+ 2. 環保署監測某個縣市的二氧化碳每小時濃度，平均值為0.36，變異數為0.16。如果二氧化碳每小時濃度成常態分佈，請問前10\%的二氧化碳每小時濃度至少是多少？
+ 
+```{r include=FALSE}
+qnorm(0.9, .36, 0.4)
+#0.872
+```
+
+ 3. 隨機抽樣調查 350位同學，發現140位受訪者在最近一年曾經出國。請問信賴水準90%的區間估計是甚麼?
+ 
+```{r include=FALSE}
+prop.test(140, 350, conf.level = .9)
+#90 percent confidence interval: (0.356, 0.445)
+```
+ 
+  4. 有兩家民調公司，分別接受同一家廠商委託調查對於最新銷售的電腦的好感度。第一家公司收集$n_{1}$的隨機樣本，樣本變異數為$\hat{\sigma_{1}}$。第二家公司則認為只需要一半的隨機樣本即可，而且樣本變異數是另一家公司的四分之一，也就是$\hat{\sigma_{2}}=0.25\hat{\sigma_{1}}$。請回答以下子題：
+  
+  (1) 假設第一家公司的樣本數為60，調查得到的平均為$\hat{\mu}_{1}=34$，第二家公司調查得到的支持度為$\hat{\mu}_{2}=39$。請問這兩家公司對於產品好感度的最佳估計是什麼？
+  
+  (2)請問這兩家調查的支持度信賴區間分別為何？
+
+```{r include=F}
+#34, 39分別是最佳估計
+#第一家公司的信賴區間為：34-1.96*sqrt(1/6)=[33.2,34.79]
+#第二家公司的信賴區間為：39-1.96*sqrt(.625/30)=[38.726, 39.274]
+```
+  
+  5.  請畫圖檢視$\textbf{UsingR::brightness}$ 的分佈，並且以 $\tt{t.test}$ 計算95\%信賴水準的區間估計。
+```{r include=F}
+dt <- data.frame(brightness=UsingR::brightness)
+ggplot(data=dt, aes(x=brightness)) +
+  geom_bar(stat='bin', fill="#e10e10") 
+
+t.test(UsingR::brightness, conf.level = .95)
+#[8.33, 8.49]
+```
+  
+  
+   6. 某電商平台規定，有問題的貨品比例不能超出7%，而倉儲抽出361個商品調查，顯示有9.5%的貨品可能有問題。試問樣本估計的Z值為何？
+ 
+```{r include=F}
+phat=0.095; p=0.07
+Z=(phat-p)/sqrt(p*(1-p)/361); Z
+```
+
+  7. 續第6題，請問右尾的$p$值是多少？
+```{r include=F}
+phat=0.095; p=0.07
+Z=(phat-p)/sqrt(p*(1-p)/361); Z
+p=1-pnorm(Z, 0, 1); p
+```  
+  
+  8. 某社區醫院統計其接生的新生兒平均重量為3千克。若隨機選擇在該醫院出生的8個嬰兒作為樣本，記錄他們的體重分別為2.8，4.0，3.3，4.1，2.9，2.8，3.2，2.76千克。請問95\%的區間估計為何？
+```{r include=F}
+b=c(2.8, 4.0,3.3,4.1,2.9,2.8,3.2, 2.76)
+t.test(b, mu=3)
+# [2.779, 3.685]
+```  
+
+  9. 請問$\text{P}(0<Z<1)=?$
+```{r include=F}
+pnorm(1, 0, 1)-pnorm(0)
+```
+  
+  10. 隨機抽查1154位民眾，有48\%的受訪者表示應該採用電子投票，有40\%的受訪者認為應該維持紙本投票，另外有12\%沒有意見。針對電子投票的贊成比例，請問信賴水準99\%的區間估計為何？
+```{r include=F}
+se=sqrt(0.48*0.52/1154)
+#lower bound
+0.48+qnorm(0.01/2)*se
+#upper bound
+0.48+qnorm(1-0.01/2)*se
+
+```  
+
+
+**假設檢定**
+
+<p1>
+ 1. 請檢定`UsingR`中的rat這筆資料的平均數是否大於110。
+</p1>
+```{r include=F}
+t.test(UsingR::rat, mu=110, alternative = 'greater')
+#We cannot reject the hypothesis that mean is equal to 110. The 95% confidence interval includes 99.30, so it is not greater than 110.
+```
+
+<p1>
+2. 請問`UsingR`中的<span style:"color=blue">iq</span>這筆資料中，iq的平均數大於100嗎？
+</p1>
+```{r include=F}
+t.test(UsingR::iq, mu=100, alternative = 'greater')
+#We cannot reject the hypothesis that mean of iq is equal to 100. The 95% confidence interval includes 99.30, so it is not greater than 100.
+```
+
+<p1>
+3. 某一調查中，18位受訪者對2位候選人的表現打成績如下表，老師想知道這兩位候選人得到的成績是否相同，請問如何檢定？
+</p1>
+```{r hwable, echo=FALSE}
+homeworktable<-read.table('./homeworktable.txt', sep=';', header=T)
+```
+
+```{r hwable2, echo=FALSE}
+  kable(homeworktable) %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+
+```{r include=F}
+dt <- read.table('./homeworktable.txt', header=T, sep=';')
+t.test(dt$Candidate.1, dt$Candidate.2, paired=T)
+#cannot reject the hypothesis that the two candidates are different
+```
+
+
+<p1>
+4. 請用Moodle上面的「立委-A05-2（台北市）.ods」資料以及「候選人在各投開票所得票數一覽表」，整理台北市第二選區國民黨候選人在2016立委選舉以及2019補選的資料，然後先畫圖比較國民黨候選人在台北市第2選區在2016年的立委選舉與2019年的立委補選的各里的分佈，最後檢驗平均得票率是否相同。
+</p1>
+```{r include=F}
+# read data 
+taipei.hw<-read.csv('./taipeisecond.csv', header=T, fileEncoding = 'BIG5')
+library(dplyr)
+# create variables
+taipeihw<-taipei.hw %>% 
+   mutate(KMT2016.p=100*KMT2016/total2016, KMT2019.p=100*KMT2019/total2019)
+# long table
+library(reshape2)
+dat<- taipeihw %>% 
+       select('2016'='KMT2016.p', '2019'='KMT2019.p')
+dat.new <- melt(dat, variable.name = "election", value.name = "KMT") 
+dat.new <- dat.new %>% 
+           group_by(election) %>%
+           mutate(grp.mean=mean(KMT)) %>%
+           mutate(Year=as.factor(election))
+# graph
+library(ggplot2)
+ggplot(dat.new, aes(x=KMT, color=Year)) +
+  geom_density(position="identity", alpha=.4) +
+  geom_vline(data=dat.new, aes(xintercept=grp.mean, color=Year),
+             linetype="dashed") +
+  labs(x="KMT's vote share", y="")
+
+# paired test
+
+with(taipeihw, t.test(KMT2016.p, KMT2019.p, paired = T))
+
+# answer: reject the null hypothesis that two means are equal
+```
+
+<p1>
+5. 請建立以下的模擬資料，然後檢驗各組的平均數是否相等。如果不相等，請找出哪兩組有不同的平均數。
+</p1>
+
+```{r}
+set.seed(377)
+DV<-rnorm(1000, 0, 3)
+X.1<-round(runif(1000, 1, 4))
+X <- as.factor(X.1)
+```
+
+```{r include=F}
+leveneTest(DV ~ X)
+bartlett.test(DV ~ X)
+r.aov<-aov(DV ~ X)
+summary(r.aov)
+TukeyHSD(r.aov)
+#reject the null hypothesis
+#Group 1 and 3 may have different means.
+```
+
+ 6. 某社區醫院統計其接生的新生兒平均重量為2.8千克。若隨機選擇最近一個月在該醫院出生的7個嬰兒作為樣本，記錄他們的體重分別為2.8，4.0，3.3，4.1，2.9，2.8，3.2千克。請問如果顯著水準為5\%，可否結論最近一個月出生的嬰兒平均體重等於2千8百公克？
+
+```{r include=F}
+b=c(2.8, 4.0,3.3,4.1,2.9,2.8,3.2)
+t.test(b, mu=2.8)
+# [2.793, 3.850] p-value=0.0522
+#無法拒絕平均2千8百克體重的虛無假設
+```  
+
+  7. 請寫出右尾、左尾、雙尾等三種檢定的$Z$與$Z_{\alpha}$之間的關係。
+
+```{r include=F}
+x=c(1,3); y=c(1,2)
+plot(x, y, type='n', axes=F, xlab="", ylab="")
+text(1, 2, paste("1.")); text(1.2, 2, expression(Z<=Z[alpha]));
+text(1, 1.8, paste("2.")); text(1.2, 1.8, expression(Z>=Z[alpha]));
+text(1, 1.6, paste("3.")); 
+text(1.2, 1.6, expression(Z[-alpha/2]<=Z))
+text(1.35, 1.6, expression(Z<=Z)); 
+text(1.45, 1.6, expression(Z[alpha/2]))
+```
+  
+  8. \textbf{現代統計學}第10.16題第1小題。
+  
+```{r include=F, eval=FALSE}
+phat=150/180
+p=0.778
+n=180
+se=sqrt(p*(1-p)/n)
+T=(phat-p)/se
+cat("T=",T, '\n')
+cat("P=",pt(T, n-1, lower.tail = F))
+# reject the null hypothesis that the current vision is equal or no worse than before.
+```
+  
+  9. \textbf{現代統計學}第10.18題第1小題。
+```{r include=FALSE, eval=FALSE}
+y=183.9
+xbar=171; xsd=21; n=25
+alpha=0.01
+Z=(xbar-y)/(xsd/sqrt(n))
+cat('Z=', (xbar-y)/(xsd/sqrt(n)),'\n')
+pnorm(abs(Z), 0, 1)
+#We can reject the null hypothesis that the current working hour is equal or more than in 2013
+```
+
+  10. \textbf{現代統計學}第10.18題第2小題。
+```{r include=FALSE, eval=FALSE}
+y=183.9
+xbar=161; xsd=21; n=100
+alpha=0.01
+Z=(xbar-y)/(xsd/sqrt(n))
+cat('Z=', (xbar-y)/(xsd/sqrt(n)),'\n')
+pnorm(abs(Z), 0, 1)
+#We can reject the null hypothesis that the current working hour is equal or more than in 2013
+```  
+  
+# 更新內容日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```

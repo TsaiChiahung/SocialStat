@@ -1,0 +1,912 @@
+---
+title: "社會科學統計方法"
+subtitle: 關聯統計與卡方檢定
+header-includes:
+     - \usepackage{fancyhdr}
+     - \setlength{\headheight}{15.2pt}
+     - \pagestyle{fancy}
+     - \fancyhead[LE,RO]{蔡佳泓}
+     - \fancyfoot{}
+     - \chead{\textbf{社會科學統計方法}}
+     - \fancyhead[LO,RE]{\leftmark}
+     - \cfoot{\thepage}
+     - \usepackage{amsmath}
+     
+author: "蔡佳泓"
+job: "東亞所"
+date: '5/12/2020'
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: no
+  
+classoption: "hyperref,"
+always_allow_html: yes
+
+---
+\ctexset{today=big}
+
+\renewcommand{\contentsname}{目次}
+\renewcommand{\listtablename}{表次}
+\renewcommand{\listfigurename}{圖次}
+\renewcommand{\figurename}{圖}
+\begin{center}
+\tableofcontents
+\listoftables
+\listoffigures
+\end{center}
+
+
+```{r include=FALSE}
+library(showtext)
+showtext.auto(enable = TRUE)
+font_add("SimSun","Songti.ttc")
+```
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height=4, collapse = TRUE,
+                       latex.options.color='blue',
+                      fig.align = "center")
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+library(haven); library(foreign)
+library(TSstudio)
+library(reshape2)
+library(ggstatsplot)
+library(DescTools)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+options(knitr.table.format = "latex",encoding = 'UTF-8')
+```
+\vspace{2cm}
+
+# 課程目標
+在上一週課程中，我們介紹點估計、區間估計，以及幾種樣本檢定的方式。這些統計都屬於單一變數的統計，也就是計算單一變數的樣本估計值，然後建立一定信賴水準下的區間估計。
+
+本週上課將介紹兩個變數的相關，包括兩個類別變數以及兩個連續變數。配合之前討論的視覺化，可以描述兩個變數之間的關係，例如：
+
+```{r}
+# plot
+ggstatsplot::ggbarstats(
+  data = ISLR::Default,
+  x = student,
+  y = default,
+  #sampling.plan = "jointMulti",
+  title = "Student and Default",
+  xlab = "Student",
+  legend.title = "Default",
+  #ggtheme = hrbrthemes::theme_ipsum_pub(),
+  ggplot.component = list(scale_x_discrete(
+          guide = guide_axis(n.dodge = 2))),
+  palette = "Set2",
+  messages = FALSE
+)
+```
+
+
+---
+
+# 類別變數的相關
+
+ - 社會科學經常分析類別資料。類別資料之間的關聯性有各種分析方法，原則為減少實際觀察到的數值與理想上或者不知道另一個變數時之間誤差的比例，也就是
+ Proportional Reduction of Error (PRE)。PRE可表示為：
+ 
+$PRE=\frac{E_{1}-E{2}}{E_{1}}$
+
+ - 其中 $E_{1}$表示不知道自變項(X)時、預測依變項(Y)的誤差。$E_{2}$表示知道X而預測Y時的誤差。PRE越大，表示X與Y的關聯性越高。
+
+ - 根據資料的特性，我們應該使用不同的關聯性指標來表示兩個變數之間的相關程度：
+ 
+ 1. 名目變數： $\lambda$
+ 2. 順序變數： $\Gamma$
+ 3. 雙變數：$X^2$
+
+## 名目變數
+
+ - 當我們觀察到一個名目變數，想要知道另一個名目變數的分佈時，可以用$\lambda$(lambda)表示兩者之間的相關程度。$\lambda$是一個最小為0，最大為1的指標，適用在名目變數。
+ 
+### 範例
+
+ - 假設調查95個民眾詢問他們對自己職業的滿意情形，結果如表 \ref{tab:table0}。回答最多的是Poor，有38人。所以如果我們猜其他人也回答Poor，我們會錯57次。
+
+```{r table0, echo=FALSE}
+Freq<-read.table('./data/lambdafreq.txt', sep=';', header=T)
+  kable(Freq, booktabs=T, caption="職業滿意情形之次數分配") %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+
+ - 如果知道這95人的職業，那麼我們也許會錯比較少，我們同樣觀察每一個類別當中相對多數的類別。表 \ref{tab:table2} 顯示，30位警察當中，有15人表示Good，30位消防員當中，有15人表示Poor，依此類推。
+
+```{r table2, echo=FALSE, warning=FALSE}
+ltable<-read.table('./data/police.txt', sep=';', header=T)
+  kable(ltable, booktabs=T, caption="四種職業滿意情形") %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+
+ - 把表 \ref{tab:table2} 的結果做成表 \ref{tab:table3}，可以得出正確的次數為53，錯誤次數為42。套用PRE的公式，我們求出知道另一個變數分佈之後減少錯誤的比率：
+ 
+\begin{align*}
+\frac{E_{1}-E_{2}}{E_{1}} & = \frac{57-42}{57} \nonumber \\
+  & = \frac{15}{57} \nonumber \\
+  & = 0.263
+\end{align*}
+
+```{r table3, echo=FALSE}
+lambda<-read.table('./data/lambda.txt', sep=';', header=T)
+  kable(lambda, booktabs=T, caption="四種職業滿意情形之正確與錯誤") %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=14) 
+```
+
+$E1=N_{\text{total}}-N_{\text{mode}\hspace{.4em}\text{of}\hspace{.4em}\text{dependent}\hspace{.4em}\text{variable}}$
+
+$E2=\sum(N_{\text{category}}-N_{\text{mode}\hspace{.4em} \text{of}\hspace{.4em}\text{category}})$
+
+ - 以上計算$\lambda$是 使用自變數值來預測應變數值時，反映比例誤差縮減的關聯量數。數值 1 表示自變數可完全預測因變數。值 0 表示自變數無助於預測應變數。但是也有可能兩個都是自變數也是依變數，也就是兩者對稱，計算公式有所不同。
+ 
+ - $\textbf{DescTools}$套件有關聯指標的函式，我們先建立職業與滿意度的表格，然後用$\textbf{Lambda}$這個函式，記得要設定依變數是在「列」。得到的結果跟上面計算一致。
+```{r}
+lambdatab=cbind(c(10,5,15),c(15,10,5),c(5,15,5),
+                c(8,2,0))
+DescTools::Lambda(lambdatab, direction = "row")
+```
+ 
+ - Goodman-Kruskal's $\tau$來自於不知道自變項(X)時、預測依變項(Y)的誤差，減去不知道依變項(Y)而預測自變項(X)時的誤差，再除以不知道自變項(X)時、預測依變項(Y)的誤差。我們用$\textbf{DescTools::GoodmanKruskalTau}$進行分析：
+
+```{r}
+DescTools::GoodmanKruskalTau(lambdatab)
+```
+
+
+## 順序變數
+
+ - 順序變數的相關程度可用Goodman-Kruskal's $\Gamma$表示。$\Gamma$應用在分析對稱（也就是不分自變數與依變數）的關聯。$-1\leq \Gamma \leq 1$。
+ 
+ - 順序尺度的變數也可以用Kendall’s $\tau-b$ 幫助$\Gamma$係數處理一些平手的配對。 
+
+ - $N_{s}$代表自變數與依變數有相同順序的觀察值。$N_{d}$表示在自變數排序高但是在依變數排序低的觀察值。$T_{x}$, $T_{y}$代表$x$, $y$平手的觀察值。
+
+ - Somers'D 應用在不對稱的關係。
+ 
+ - 我們用表 \ref{tab:cellstable} 的3乘3表格，說明如何計算符合順序的次數跟不符合的次數。
+ 
+\begin{table}
+\centering
+\begin{tabular}{| l | l | l | l | l |}
+\hline
+	 &  & 	  &	 X	 & \\
+\hline
+	 &  & 1 &	2	& 3 \\
+\hline
+	 & 1 & f11 & f12 & f13 \\
+\hline
+Y	&  2 & f21  & f22 & f23 \\
+\hline
+	& 3  & f31  & f32 & f33 \\
+\hline
+\end{tabular}
+\caption{3乘3表格}\label{tab:cellstable}
+\end{table}
+
+ - Ns=f11(f22+f23+f32+f33)+f12(f23+f33)+f21(f32+f33)+f22(f33)
+ - Nd=f13(f22+f21+f32+f31)+f12(f21+f31)+f23(f32+f31)+f22(f31)
+ - Ty=f11(f12+f13)+f12(f13)+f21(f22+f23)+f22(f23)+f31(f32+f33)+f32(f33)
+ - Tx=f11(f21+f31)+f21(f23)+f12(f22+f32)+f22(f32)+f13(f23+f33)+f23(f33)
+
+ 
+ $\Gamma: (N_{s}-N_{d})/(N_{s}+N_{d})$
+ 
+ - 例如表 \ref{tab:economy} 顯示教育程度與認為經濟變不變好的關係。
+
+\begin{table}
+\centering
+\begin{tabular}{l l | l | l | l | l}
+ &			 &	 & 未來一年台灣經濟變？ & 	 &	  \\
+ \hline
+ &			& 		變差 &  差不多 & 變好 & 總和 \\
+	 	&	國中及以下 & 35  & 73  & 30 & 138 \\
+教育程度 &    高中五專  & 76  & 134 & 54 & 264 \\
+		&	大學以上   & 22  &  56 & 30  & 108 \\
+總和		&           & 133	& 263 & 114 & 510 \\
+\hline
+\end{tabular}
+\caption{教育程度與對經濟看法}\label{tab:economy}
+\end{table}
+
+ - 在上面的表格計算同序、不同序的數目，代入公式計算關聯係數。
+
+```{r}
+ns<-35*(134+56+54+30)+73*(54+30)+76*(56+30)+134*30
+nd<-30*(76+22+134+56)+54*(22+56)+73*(76+22)+134*22
+(ns-nd)/(ns+nd)
+```
+
+ - 用`R`計算Goodman-Kruskal's $\Gamma$：
+```{r}
+etable<-cbind(c(35,76,22),c(73,134,56),
+              c(30,54,30))
+DescTools::GoodmanKruskalGamma(etable, direction="column")
+```
+
+ - Goodman-Kruskal's $\Gamma$並沒有考慮平手的情況，也就是自變數或是依變數的不同順序類別有相等的值。因此，我們計算Kendall's $\tau-b$以及Somer's D，兩者結果相近：
+```{r}
+etable<-cbind(c(35,76,22),c(73,134,56),
+              c(30,54,30))
+DescTools::KendallTauB(etable, direction="column")
+DescTools::SomersDelta(etable, direction="column")
+```
+
+Kendall's $\tau-b=(N_{s}-N_{d})/\sqrt{(N_{s}+N_{d}+T_{x})\cdot (N_{s}+N_{d}+T_{y})}$
+
+```{r}
+tx<-35*(76+22)+76*22+73*(134+56)+134*56+30*(54+30)+54*30
+ty<-35*(73+30)+73*30+76*(134+54)+134*54+22*(56+30)+56*30
+taub<-(ns-nd)/sqrt((ns+nd+tx)*(ns+nd+ty))
+taub
+```
+
+Somer's D=$(N_{s}-N_{d})/(N_{s}+N_{d}+t_{y})$
+
+ - Kendall's $\tau-b$ 在樣本數大於10的時候，抽樣分佈會形成標準常態分配，也就是可以計算Z值，並檢驗假設。
+ - Kendall's $\tau-b$ 與 Spearman rank coefficient一樣， 可以用來計算兩個順序變數之間的相關程度，以-1到+1表示相關程度。
+
+
+# 卡方檢定
+
+
+ - 卡方($\mathcal{X}^2$)檢定計算隨機變數的分佈與理論上分佈之間的差距以及對應的機率值$p$。如果差距太大則拒斥觀察到的變數分佈等於理論分佈的假設，也就是隨機產生的。一般設定$p<0.05$。
+ 
+ - 可分為適合度檢定(goodness of fit)以及獨立性檢定(test of independence)。
+ 
+ - 為何要用卡方分佈？卡方分佈適用於數個獨立變數的平方和，最初是研究變異數的學者發現。它是$\Gamma$分佈的一種。因此卡方分佈的最重要參數是自由度。
+
+## 卡方分佈
+
+![4種自由度的卡方分佈機率密度](./Fig/chi2.jpg){width=600px, height=900px}
+
+##自由度
+
+  - 自由度的意義為在進行統計時有多少可以變化的參數。例如當我們已知$n$個數的平均數，只要知道$n-1$個數的數值時，最後一個數的大小會自動決定。
+  
+ - $t$分佈、$\mathcal{X}^2$分佈都會因為樣本大小不同而有不同的分佈。如果是進行適合度檢定，自由度是$k-1$，$k$是類別數。如果是進行雙樣本的獨立檢定，自由度是：$(n_{c}-1)\cdot (n_{r}-1)$。因此我們當知道某幾個格子之後就可以得知其他的格子。例如一個2$\times$ 2表格，只要知道其中一格的個數，在總數不變的前提下，就知道其他格子的個數。
+
+##適合度檢定
+
+ - 適合度檢定比較觀察到的分佈與平均分配或者是已知的參數分佈。
+ - 例如100位樣本中，52位是女性，我們可以比較理論上男女各半的分佈，或者是比較男女比為47:53的假設，看看觀察到的分佈是否符合男女各半還是47:53這個假設。
+
+##獨立性檢定
+
+ - 獨立性檢定以列聯表決定兩個名目變數之間是否有統計上的相關。
+ -  如果有兩個變數$A$,$B$，當$A$從類別1變動到類別2，$B$也跟著改變，可以判斷這兩個變數不互相獨立。
+ - 因為要用機率分佈進行假設檢定，所以列聯表內的期待值不能太小。
+ - 樣本數如果太小，$\mathcal{X}^2$可能被高估，太大可能被低估。
+ - 不表示兩個變數之間的關聯性大小，只呈現相關與否的證據。
+ - $H_{0}:$兩個變數獨立;$H_{1}:$兩個變數不獨立
+ - 期待值計算方式： 
+
+  $$\hat{n_{ij}}=(RT\times CT)/ N$$
+
+ - $RT$：包含該列的邊際的總和  
+ - $CT$：包含該列的邊際的總和  
+ - $N$：觀察值總數
+ 
+## 計算期待值
+
+ - 我們以$2\times 2$的表格 \ref{tab:2by2} 說明期待值的計算方式：
+
+\begin{table}
+\centering
+\caption{2乘2表格}
+\label{tab:2by2}
+\begin{tabular}[t]{lllll}
+\toprule
+ &  & X &  & \\
+ &  & 1 & 2 & Total\\
+Y & 1 & f11 & f12 & R1\\
+ & 2 & f21 & f22 & R2\\
+Total &  & C1 & C2 & N\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ - 根據上面表格計算期待值：  
+ 1. $E11=\frac{R1\times C1}{N}$
+ 2. $E12=\frac{R1\times C2}{N}$
+ 3. $E21=\frac{R2\times C1}{N}$
+ 4. $E22=\frac{R2\times C2}{N}$
+
+## 計算卡方值公式
+
+ - 觀察值以$O_{ij}$表示，期待值則以$E_{ij}$表示。
+ - 兩者的差距越大，表示觀察值距離隨機分佈越遠，也就表示觀察值越不可能是兩者無關的隨機分佈。
+ 
+  $$\mathcal{X}^2=\sum_{i}\sum_{j}\frac{(n_{ij}-\hat{n_{ij}})^2}{\hat{n_{ij}}}$$
+ 
+或者是  
+
+$$\mathcal{X}^2=\sum_{i}\sum_{j}\frac{(O_{ij}-E_{ij})^2}{E_{ij}}$$
+
+ - 當交叉列表應用在$2\times 2$表格時，建議用Yate's correction係數。
+ 
+ $$\mathcal{X}^2=\sum_{i}\sum_{j}\frac{(|O_{ij}-E_{ij}|-0.5)^2}{E_{ij}}$$
+ 
+ - 卡方分布的期望值等於自由度。而且自由度越接近30，越接近常態分佈。
+
+##適合度檢定
+
+ - 適合度檢定指的是變數的分佈是否符合特定分佈，例如單一分佈，也就是每一類別有一樣的觀察值數目。期待值計算方式為：
+ 
+$$E_{k}=\frac{N}{n}$$
+ - $H_{0}$為觀察值平均分佈在每一類別，如果拒斥這個假設，表示各類別之間的差距的確存在而非隨機分佈。
+ 
+ - 自由度為$k-1$。因為觀察值的總和為$N$，只要知道$k-1$個類別的觀察值就知道最後一個類別的觀察值。
+ 
+ - 另一方面，因為單一分佈的總和是固定的，所以在這一個限制下理論上的數值變化就喪失一個自由度，寫成$p=1$。$k-p=k-1$就是自由度。
+
+###範例
+
+  - 抽出100位1990年之後的出生的受訪者，觀察到男性為52人、女性為48人，請問這是平均分佈嗎？
+
+ - 計算為
+ $$\mathcal{X}^2=\frac{(52-50)^2}{50}+\frac{(48-50)^2}{50}=0.16$$
+
+## 卡方值對應之臨界值
+
+ - **現代統計學**的第696-697頁提供拒斥域的機率值($\alpha$)對應的卡方分配的臨界值表，左邊每一列是自由度，每一欄$\mathcal{X^2}_{\alpha}$則是拒斥域$\alpha$的機率值，$P(\mathcal{X^2}>\mathcal{X_{a}^2})\alpha$。表格的由左而右，代表$\alpha$越來越小，非拒斥域的機率值越來越大。在同樣的自由度下，拒斥域越小，卡方分配的臨界值也就越大。
+ 
+ - 右尾卡方值參考表 \ref{tab:rightchi}: 
+
+\begin{table}
+\centering
+\caption{右尾卡方值表}
+\label{tab:rightchi}
+\begin{tabular}[t]{llllll}
+\toprule
+ &  &  & d.f. &  & \\
+ & 1 & 2 & 3 & 4 & 5\\
+0.05 & 3.84 & 5.99 & 7.82 & 9.49 & 11.07\\
+0.01 & 6.63 & 9.21 & 11.34 & 13.28 & 15.09\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ - 也可以用`qchisq`這個指令，設定$\alpha$值與自由度之後，即可計算應該大於多少卡方值，要注意的是$\texttt{qchisq()}$應該要填$1-\alpha$，而不是$\alpha$：
+ 
+```{r}
+alpha=0.05
+qchisq(1-alpha, df=3)
+```
+
+ - 反過來，$\texttt{pchisq}$ 可以輸出一定的自由度下卡方值的機率，例如：
+```{r}
+1-pchisq(2.9, 1)
+```
+
+ - 回到我們的例子，當卡方值為0.16，自由度為1時：可計算機率值等於0.68：
+
+
+```{r}
+1-pchisq(0.16, 1)
+```
+
+
+ - 查表可知機率值為0.68，因此無法拒斥資料來自母體的假設。
+
+ - 我們也可以用卡方檢定測試觀察值是否符合特定的分佈。例如我們經常做加權檢定，想要知道是否樣本符合母體，虛無假設是樣本分佈等於母體分佈，以性別而言，自由度為1。假設母體的分佈是： 
+
+ - 男：$\frac{9003150}{9003150+9184065}=0.495$
+ - 女：$\frac{9184065}{9003150+9184065}=0.505$
+
+ - 假設我們觀察到1,067人，男女分佈如表 \ref{tab:gendertable}，可計算對應的理論值：
+
+\begin{table}
+\centering
+\caption{男女性別分佈}
+\label{tab:gendertable}
+\begin{tabular}{l|l|l}
+\hline
+性別 & 個案數 & 理論值\\
+\hline
+男 & 531 & 528.165\\
+\hline
+女 & 539 & 538.835\\
+\hline
+\end{tabular}
+\end{table}
+
+ - 計算卡方值：
+\begin{align*}
+\mathcal{X}^2 & =\frac{(531-528.165)^2}{528.165}+\frac{(539-538.835)^2}{538.835} \nonumber \\
+& =0.015+0 \nonumber \\
+& =0.015 \nonumber \\
+& <3.84
+\end{align*}
+
+ - 結論：我們無法拒斥$H_{0}$：觀察值與母體有相同分佈在每一類別這個假設。
+
+ -如果我們想知道政黨支持與婚姻狀態是否互相獨立？以表 \ref{tab:party} 的資料為例：
+
+```{r party,echo=F}
+pt <- data.frame(a=c("",  "", "政黨支持", "",	"Total"),
+	               b=c("", "", "國民黨",	"民進黨",""),
+                 d=c("婚姻", "已婚", 141, 91, 232),
+                e=c("", '其他', 77 , '72', '149'), 
+               f=c('Total', "", '218' , '163' , '381'))
+colnames(pt)<-NULL
+
+pt %>%
+  kable(booktabs=T, caption = "政黨支持與婚姻狀態") %>%
+  kable_styling(full_width=F, bootstrap_options = "striped", font_size=11)
+```
+
+ - 先寫語法轉出表格
+```{r}
+marri<-c(141,91,77,72)
+marripid<-matrix(marri,2)
+marripid
+```
+
+ - 計算邊際機率
+```{r}
+rt<-margin.table(marripid,1)
+ct<-margin.table(marripid,2)
+newtable<-cbind(marripid,rt)
+rbind(newtable,ct)
+```
+
+ - 計算期待值
+```{r}
+n=sum(marri)
+e11<-rt[1]*ct[1]/n; e21<-rt[2]*ct[1]/n
+e12<-rt[1]*ct[2]/n;e22<-rt[2]*ct[2]/n
+ 
+expec <- matrix(c(e11,e21,e12,e22),2)
+print(expec)
+```
+
+ - 最後計算卡方值：
+```{r}
+dt<-c((marripid[1,1]-expec[1,1])^2/e11,
+            (marripid[2,1]-expec[2,1])^2/e21,
+             (marripid[1,2]-expec[1,2])^2/e12,
+             (marripid[2,2]-expec[2,2])^2/e22)
+dt
+chisq<-sum(dt)
+chisq
+```
+
+ - 如果用`R`的函數計算，可以用$\textbf{chisq.test}$這個函數，得到Pearson's 卡方檢定：
+```{r}
+marri<-c(141,91,77,72)
+marripid<-matrix(marri,2)
+chisq.test(marripid)
+```
+
+ - 因為Yates(1934)建議需要考慮討論2$\times2$表格的時候，卡方分配逼近不連續的樣本分配的問題，所以重新計算卡方值為$\sum\frac{(|O-E|-0.5)^2}{E}$
+ 
+```{r}
+# YATES <- min(0.5, abs(x - E))
+dt<-c((abs(marripid[1,1]-expec[1,1])-0.5)^2/e11,
+      (abs(marripid[2,1]-expec[2,1])-0.5)^2/e21,
+      (abs(marripid[1,2]-expec[1,2])-0.5)^2/e12,
+      (abs(marripid[2,2]-expec[2,2])-0.5)^2/e22)
+dt
+chisq<-sum(dt)
+chisq
+```
+
+ - 可畫圖表示如圖 \ref{fig:chi1}：
+```{r, fig.cap="\\label{fig:chi1}自由度為1的卡方分佈"}
+z=curve(dchisq(x, df=1), from=0, to=6)
+abline(v = chisq, lty = 3, lwd=1.5, col='red2')
+```
+
+## 標準化殘差
+
+ - 觀察值與期待值之間的差距稱為殘差。殘差越大表示觀察到的數目遠高於應該有的期待值，也表示往這個方向變動。
+ - 標準化殘差就是考慮每一格所在的行與列所佔的比例進行標準化。
+ 
+$z_{ij}=\frac{O_{ij}-E_{ij}}{\sqrt{E_{ij}(1-{\mathrm {row\hspace{.2em} prop.}})(1-{\mathrm {column\hspace{.2em} prop.}})}}$  
+ 
+ - 標準化殘差越大表示那一格的觀察值超過當虛無假設成立時的期待值越多，也就表示兩個變數的關聯越高。
+ 
+ - 有一筆觀察值為1067的資料，教育程度分佈如表 \ref{tab:education}，依據母體資料求出期待值以及殘差：
+
+```{r education,echo=F}
+TD<-data.frame(a=c('教育程度', '小學及以下' , '國中' , '高中' , '專科' , '大學及以上'),
+               b=c('理論值', 192.66	, 228.42 , 216.56 , 202.64 , 226.68),
+               d=c('殘差', -6.66 , -81.42 , 94.43 , -65.64 , 59.31))
+colnames(TD)<-NULL
+
+TD %>%
+  kable(booktabs=T, caption="教育程度分佈之理論值與殘差") %>%
+  kable_styling(full_width=F, bootstrap_options = "striped", font_size=11)
+```
+
+ - 由表 \ref{tab:education} 可知高中、大學及以上教育程度這兩群人在樣本中相對於母體而言太多，其他類別則是人太少，因此可能需要加權以符合母體。
+
+
+**卡方檢定注意事項**
+
+ - 變數交叉列表的每一格的期待值最好大於5，也就是個案數分佈要平均，才不會用其他的格子推論極少個案數的類別之關係。
+ - 卡方值$\mathcal{X}^2$不表示關聯性的大小，只能用來檢驗兩個變數是否互相獨立的假設。卡方值越大不代表兩個變數關聯越大。
+
+# 運用卡方值產生關聯係數 
+
+## 二分類變數
+
+ - $\Phi$是卡方值產生的關聯係數之一，介於0與1之間。如果兩個變數都是二分類變數，我們可用卡方值代入$\Phi$的公式如下：
+ 
+$$\Phi=\sqrt{\frac{\mathcal{X}^2}{N}}$$
+
+### 範例
+
+ - 在$\textbf{UsingR::too.young}$ 這筆資料中，有男性與女性的約會年齡，我們歸類為二分類，以卡方檢定得到卡方值，並且同時用$\textbf{DescTools::Phi()}$計算$Phi$，得到結果如下，兩者相當接近：
+
+```{r}
+male.age<-car::recode(UsingR::too.young$Male, 
+                             "10:35=1; 36:100=2")
+female.age<-car::recode(UsingR::too.young$Female, 
+                          "10:30=1; 31:100=2; NA=1")
+chisq.test(male.age, female.age, correct = F) #chisquared=28.283
+DescTools::Phi(male.age, female.age)
+phi=sqrt(28.283/80); phi
+```
+
+## 多分類變數
+
+ - Cramer's $V$也是卡方值產生的關聯係數之一，介於0與1之間。如果兩個變數都是多分類變數，我們可用卡方值代入Cramer's $V$的公式如下：
+ 
+$$V=\sqrt{\frac{\mathcal{X}^2}{N*min_{r-1,c-1}}}$$
+ 
+ - Cramer's V的公式中，分母是觀察值乘以列或者行的數目比較小的其中之一，再減去1。
+ - 同時用$\textbf{DescTools::CramerV()}$計算$V$，得到結果如下，與代入卡方值計算結果相當接近：
+ 
+```{r}
+male.age<-car::recode(UsingR::too.young$Male, 
+                      "10:30=1; 31:50=2; 51:100=3")
+female.age<-car::recode(UsingR::too.young$Female, 
+                        "10:25=1; 26:40=2; 41:100=3; NA=2")
+chisq.test(male.age, female.age, correct = F) #chisquared=80.148
+DescTools::CramerV(male.age, female.age)
+v=sqrt(80.148/(80*2)); v
+```
+
+<hr>
+
+# 相關分析
+
+ - 兩個連續變數之間可能會同時變動。例如油價上漲、物價上漲。氣溫上升，用電量也可能增加。
+ 
+ - 我們無法觀察到母體中真實的相關，只能用樣本來估計。
+ 
+## 相關係數
+ 
+ - $X$與$Y$兩個變數之間的線性相關可以用方程式 \ref{eq1} 來估計：
+ 
+\begin{align}
+r & =\frac{\sum (X-\bar{X})(Y-\bar{Y})}{\sqrt{\sum (X-\bar{X})}\sqrt{\sum (Y-\bar{Y})}}\nonumber \\
+& = \frac{S_{XY}}{S_{X}S_{Y}}
+\label{eq1}
+\end{align}
+
+其中
+
+  $$S_{XY}=\frac{\sum (X-\bar{X})(Y-\bar{Y})}{n-1}$$
+  
+  $$S_{X}=\sqrt{\frac{\sum (X-\bar{X})^2}{n-1}}$$
+
+$$S_{Y}=\sqrt{\frac{\sum (Y-\bar{Y})^2}{n-1}}$$
+ 
+ - 也可以計算為：  
+
+$r=\frac{n(\Sigma xy)-(\Sigma x)(\Sigma y)}{\sqrt{(n\Sigma x^2-(\Sigma x)^2)(n\Sigma y^2-(\Sigma y)^2)}}$  
+
+ - $r_{XY}$=1代表正相關關係最高，X增加一個單位，Y也增加一個單位，或者Y增加一個單位，X也增加一個單位。
+ - -1代表負相關關係最高，X減少一個單位，Y增加一個單位。
+ - 0代表兩者沒有線性相關。
+ 
+- 如果Y是X加上一個單位，兩者是高度相關：
+```{r}
+df <- tibble(X=rnorm(20,0,1), Y=X+1)
+with(df, cor(X, Y))
+
+ggplot(df, aes(x=X, y=Y)) +
+    geom_point(fill='brown', size=5, shape=1) +
+    geom_smooth(method="lm", se=F, col='blue')
+```
+
+ - 如果把Y改為$X^2$，兩者不是線性相關：
+```{r}
+df <- tibble(X=rnorm(20,0,1), Y=X^2)
+with(df, cor(X, Y))
+
+ggplot(df, aes(x=X, y=Y)) +
+    geom_point(fill='brown', size=5, shape=1) +
+    geom_smooth(method="lm", se=F, col='blue')
+```
+
+ - 由於我們不知道母體的相關程度，所以用樣本估計。我們可以用$t$檢定來檢定兩變數之間有無線性相關。$t$檢定統計量為：
+ 
+$$\frac{t}{\sqrt{\frac{1-r^2}{n-2}}} \sim\hspace{.15em}t_{n-2}$$
+
+### 範例
+
+  - $\textbf{trees}$這筆資料中有Girth（周長）與Volume（體積）兩個變數，我們想知道兩者的相關程度。
+
+ - 檢查是否兩個變數之間有線性相關可用散佈圖，例如圖 \ref{fig:ScatterPlot}：
+
+```{r fig.cap='\\label{fig:ScatterPlot}Girth與Volume散佈圖', message=FALSE, warning=FALSE}
+ggplot(trees, aes(x=Girth, y=Volume)) +
+    geom_point(size=3, col="darkgreen") +
+    labs(caption="Data: trees") +
+    theme_bw()
+```
+
+ - 可以加上迴歸線表現兩個變數的相關，例如圖 \ref{fig:ScatterPlot2}：
+```{r, fig.cap="\\label{fig:ScatterPlot2}Girth與Volume散佈圖加上迴歸線"}
+ggplot(trees, aes(x=Girth, y=Volume)) +
+    geom_point(col='darkgreen', size=3) +
+    geom_smooth(method="lm", se=F, col='blue')
+```
+
+ - 用$\textbf{ggstatsplot::ggscatterstats}$套件，同時顯示散佈圖、迴歸線、相關係數以及檢定結果。見圖 \ref{fig:corstatsplot}。
+
+```{r fig.cap="\\label{fig:corstatsplot}結合相關分析的Girth與Volume散佈圖"}
+ggstatsplot::ggscatterstats(
+  data = trees,
+  x = Girth,
+  y = Volume,
+  xlab = "",
+  ylab = "",
+  title = "",
+  messages = FALSE
+)
+```
+
+ - 也可以用非線性迴歸線（Locally Weighted Scatterplot Smoothing, LOESS）表示兩者的相關：
+```{r, fig.cap='\\label{fig:ScatterPlot3}Girth與Volume散佈圖加上非線性線'}
+ggplot(trees, aes(x=Girth, y=Volume)) +
+   geom_point(col='darkgreen', size=3) +
+   geom_smooth(method="loess", se=F) +
+   theme_bw()
+```
+
+ - 在觀察完兩個變數的關係後，以公式計算相關程度：
+ 
+```{r trees2}
+n=nrow(trees)
+x<-trees$Girth; y<-trees$Volume
+x_sd<-sd(trees$Girth)
+y_sd<-sd(trees$Volume)
+xy_sd<-sum((x-mean(x))*(y-mean(y)))/(n-1)
+r=xy_sd/(x_sd*y_sd)
+cat("correlation=",r)
+```
+
+ - 再以`R`計算：
+ 
+```{r trees2r}
+with(trees, cor(Girth, Volume))
+```
+
+ 
+## 相關係數與迴歸係數
+ 
+ - 如同圖 \ref{fig:corstatsplot} 所顯示，線性相關與迴歸係數跟$R^2$之間有關係。
+ 
+ - 相關係數與迴歸係數的關係可寫成：
+
+\begin{align} 
+\hat{\beta}=r\frac{S_{Y}}{S_{X}}
+\label{eq:rbeta}
+\end{align}
+
+ - 方程式 \ref{eq:rbeta} 顯示，當依變數$Y$相對於自變數$X$的離散程度越大，而且相關程度越大時，迴歸係數也越大。
+ 
+ - 相關係數與判定係數$R^2$的關係為：
+ 
+\begin{align}
+r^2=R^2=\frac{\sum(\hat{Y}-\bar{Y})^2}{\sum (Y-\bar{Y})^2}
+\label{eq:rsquare}
+\end{align}
+ 
+$\hat{Y}$ 是迴歸模型對$Y$的預測值。 
+ 
+ - 方程式 \ref{eq:rsquare} 說明，兩個變數的相關係數等於自變數解釋依變數的變異量的比例。
+ 
+
+<hr>
+
+# 作業
+
+ 1. 有一筆資料的交叉列表如表 \ref{tab:votetable} 顯示，贊成女性有墮胎權利的民眾傾向投給民主黨。請問墮胎議題立場與投票兩者的相關程度為何？
+
+
+\begin{table}
+\centering
+\fontsize{11}{13}\selectfont
+\caption{墮胎議題與投票選擇}
+\label{tab:votetable}
+\begin{tabular}[t]{llll}
+\toprule
+ & 贊成 & 反對 & 總和\\
+民主黨 & 46 & 39 & 85\\
+共和黨 & 41 & 73 & 114\\
+總和 & 87 & 112 & 199\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+```{r include=FALSE, eval=FALSE}
+atab<-cbind(c(46,41), c(39,73))
+DescTools::Lambda(atab, direction = "row")
+#lambda=0.058
+```
+
+ 2. **現代統計學**習題 12.2
+
+```{r include=F,eval=FALSE}
+chi2<-(40-50)^2/50
+#chi2=17
+qchisq(.99, df=5)
+#qchisq(.99, df=5)<chi2. dice is not fair
+```
+ 
+ 3. **現代統計學**習題 12.10
+```{r include=F,eval=FALSE}
+t<-rbind(c(38,47,43,32,34),
+         c(30,55,51,37,33))
+chisq.test(t)
+pchisq(3.585,4)
+qchisq(.95, df=4)
+#壽命與抽菸無關
+```
+
+ 4. **現代統計學**習題 12.14
+
+```{r include=F,eval=FALSE}
+t<-rbind(c(46172,23389,45102,17795,310,23),
+         c(92879,69683,111408,37374,1654,716),
+         c(99396,121886,137915,56760,41439,954))
+chisq.test(t)
+pchisq(49686, 10)
+qchisq(.95, df=10)
+#不同教育程度有不同的找工作方式
+```
+
+5. 請使用`PP0797B2.sav`這筆資料，然侯顯示年齡(age)與統獨立場(tondu)之間的交叉列表，再進行卡方檢定，請問這兩個變數互相獨立嗎？
+```{r include=F,eval=FALSE}
+library(foreign)
+pp <- read.spss("./data/PP0797B2.sav", to.data.frame = T)
+table(pp$age, pp$tondu)
+prop.table(table(pp$age, pp$tondu),1)
+chisq.test(pp$age, pp$tondu)
+```
+
+```{r include=F}
+pp <- read.spss("./data/PP0797B2.sav", to.data.frame = T)
+obs <-100*table(pp$age)/nrow(pp)
+expec <- 100*c(329, 331, 515, 504, 379)/2058
+test <- c((expec[1]-obs[1])^2/expec[1],(expec[2]-obs[2])^2/expec[2],
+          (expec[3]-obs[3])^2/expec[3],
+          (expec[4]-obs[4])^2/expec[4],(expec[5]-obs[5])^2/expec[5])
+xchisq<-sum(test)
+1-pchisq(xchisq, 4) # sample and population are different
+```
+
+
+6.根據上一題的資料，請問年齡的分佈是否與母體一致？假設母體的表格如表 \ref{tab:agetable}：
+```{r agetable, echo=F}
+demo_age <-data.frame(a<-c("","N","%"),
+                  b<-c("20至29歲", 351,"17.05"),
+                  b1<-c("30至39歲", 488,"23.71"),
+                  d=c("40至49歲",610,"29.64"),
+                  e=c("50至59歲", 374, "18.17"),
+                  f=c("60至69歲",235, "11.41")
+                  )
+colnames(demo_age)<-NULL
+kable(demo_age, booktabs=T, caption="年齡分佈") %>%
+   kable_styling(full_width=F, bootstrap_options = "striped", font_size=11) 
+```
+
+
+ 7. 請問以下這個表格中，部門與是否提前退休的人數有無統計上相關？
+```{r}
+tab <- as.table(rbind(Yes=c(26,23,18,9), No=c(6,7,14,23)))
+names(dimnames(tab)) <- c("Retired", "Department")
+tab
+```
+
+```{r include=F, eval=FALSE}
+rt<-margin.table(tab,1)
+ct<-margin.table(tab,2)
+newtable<-cbind(tab,rt)
+rbind(newtable,ct)
+#Expected values
+n=sum(tab)
+e11<-(rt[1]*ct[1])/n; e21<-rt[2]*ct[1]/n
+e12<-rt[1]*ct[2]/n;e22<-rt[2]*ct[2]/n
+e13<-rt[1]*ct[3]/n;e23<-rt[2]*ct[3]/n
+e14<-rt[1]*ct[4]/n;e24<-rt[2]*ct[4]/n
+expec <- matrix(c(e11,e21,e12,e22,e13,e23,e14,e24),2)
+#Chisquare
+dt<-c((tab[1,1]-expec[1,1])^2/e11,(tab[1,2]-expec[1,2])^2/e12,
+            (tab[2,1]-expec[2,1])^2/e21,(tab[2,2]-expec[2,2])^2/e22,
+            (tab[1,3]-expec[1,3])^2/e13,(tab[2,3]-expec[2,3])^2/e23,
+            (tab[1,4]-expec[1,4])^2/e14,(tab[2,4]-expec[2,4])^2/e24
+            )
+            
+xsq<-sum(dt); xsq
+#chi-square test
+dchisq(xsq, 3)
+#R function
+chisq.test(tab)
+```
+
+
+ 8. 請先畫散佈圖表現`UsingR`這個套件中的`nym.2002`這筆資料，裡面的age以及time之間的關係，並且計算兩者的相關程度。
+
+```{r include=F}
+library(UsingR)
+ggplot(nym.2002, aes(age, time)) +
+       geom_point(col="#808000", size=2) +
+       theme_bw() +
+       theme(axis.title=element_text(size=12), axis.text = element_text(size=12))
+with(nym.2002, cor(age, time))
+```
+
+ 9.請計算並且畫圖表示$\textbf{trees}$資料中三個變數的相關程度：
+
+```{r include=F,eval=FALSE, echo=FALSE}
+# for reproducibility
+set.seed(02138)
+
+# as a default this function outputs a correlation matrix plot
+ggstatsplot::ggcorrmat(
+  data = trees,
+  type = "robust", # correlation method
+  sig.level = 0.05, # threshold of significance
+  p.adjust.method = "holm", # p-value adjustment method for multiple comparisons
+  cor.vars = c(Girth,Height,Volume), # a range of variables can be selected
+  cor.vars.names = c(
+    "Girth", # variable names
+    "Height",
+    "Volume" ),
+  matrix.type = "upper", # type of visualization matrix
+  colors = c("#4D4D4D","white","#B2182B"),
+  title = "Correlalogram for Tree Data",
+  subtitle = "",
+  caption = "Data: trees"
+)
+
+library(lattice)
+cat("correlation between Girth and Height=", cor(trees$Girth,trees$Height))
+cat("correlation between Girth and Volume=", cor(trees$Girth,trees$Volume))
+cat("correlation between Volume and Height=", cor(trees$Volume,trees$Height))
+
+splom(~trees[1:3], data=trees)
+```
+
+ 10. 請針對$\textbf{mtcars}這筆資料的wt以及mpg繪製散佈圖，並且計算相關係數：
+ 
+```{r include=F}
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+##
+with(mtcars, plot(wt, mpg, main="Milage vs. Car Weight", 
+  	xlab="Weight", ylab="Mileage", pch=18, col="blue"))
+with(mtcars, text(wt, mpg, row.names(mtcars), cex=0.6, pos=4, col="red"))
+with(mtcars, cor(wt, mpg))
+```
+ 
+ 
+# 更新內容日期
+```{r echo=F}
+today <- Sys.Date()
+today <- format(today, '%m/%d/%Y')
+cat('最後更新日期', today )
+```
