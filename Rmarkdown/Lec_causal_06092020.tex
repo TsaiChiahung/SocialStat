@@ -1,0 +1,478 @@
+% This text is proprietary.
+% It's a part of presentation made by myself.
+% It may not used commercial.
+% The noncommercial use such as private and study is free
+% May 2007
+% Author: Sascha Frank 
+% University Freiburg 
+% www.informatik.uni-freiburg.de/~frank/
+%
+% 
+\documentclass[xcolor=dvipsnames]{beamer}
+
+\usecolortheme[named=OliveGreen]{structure} 
+%\usecolortheme[RGB={205,173,0}]{structure}
+\usetheme{Madrid}
+
+\usepackage{beamerthemeshadow}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{IEEEtrantools}
+\usepackage{booktabs}
+\usepackage{dcolumn}
+\usepackage{ifthen}
+\usepackage[absolute,overlay]{textpos}
+\newenvironment{reference}[2]{%
+  \begin{textblock*}{\textwidth}(#1,#2)
+      \footnotesize\sf\bgroup\color{red!50!black}}{\egroup\end{textblock*}}
+
+\begin{document}  
+\title[POM and ATE]{Potential Outcome Framework and Estimate of Treatment Effect}
+\author[CHT]{Chia-hung Tsai}
+\institute[ESC \& GIEAS]
+{
+Election Study Center \& Graduate Institute of East Asian Studies, NCCU\\
+\medskip
+{\texttt{tsaich@nccu.edu.tw}}
+}
+\date[6/16/2020]{June 16, 2020} 
+
+\begin{frame}
+\titlepage
+%\begin{reference}{4mm}{85mm}
+%Presented at Shih Hsin University Center for Computation and Empirical Statistical Studies
+ %  \end{reference} 
+\end{frame}
+
+\begin{frame}\frametitle{Table of contents}\tableofcontents
+\end{frame} 
+
+
+\section{Origin, Goal, and Examples} 
+\begin{frame}\frametitle{Purpose} 
+\begin{itemize}
+\item The origin of causal inference is field experiment. The study of yield from a particular variety of plot turns out the principle of potential outcome model (POM).
+\item The goal of causal inference is to assess the difference caused by one and only one differing circumstance. We want to investigate  how much our treatment causes the observed phenomenon, assuming that the observed and unobserved ones occur randomly. 
+\end{itemize}
+\end{frame}
+\subsection{Examples }
+\begin{frame} \frametitle{Examples}
+\begin{itemize}
+\item Post cards to boost turn out (Green and Gerber, 2008)
+\item Minimum wage on employment (Card and Krueger, 1994)
+\item Draft on civic duty (Erikson, 2011)
+\item Change of positions of newspaper on public opinion (Lenz and Ladd, 2009)
+\item Incumbency status on vote choice (Lee, 2008)
+\item Artillery fire incites insurgence (Lyall, 2009)
+\end{itemize}
+\end{frame}
+
+\section{Potential Outcome Framework}
+\begin{frame}\frametitle{Example of Plots}
+\begin{itemize}
+\item Suppose that there are \emph{i} urns and each urn has \emph{m} plots. We pick one plot (ex. plot 1) and the rest of plot 1 in other urns are taken away. In other words, we assume that every plot 1 is the same and we don't need to know which urn that we choose. 
+\item Imagine that there are only two urns. The first urn is called treatment and the second one is called control. We pick certain number of cards from each urn but we immediately forget which urn the cards come from. In doing so, we make sure that every post-treatment effect would be randomized.
+\end{itemize}
+\end{frame}
+
+\subsection{Definition}
+\begin{frame}\frametitle {Treatment, Outcome, Potential Outcome}
+
+\begin{block}{Treatment}
+D_{i}: \mbox{Indicator of treatment for}\hspace{.05cm} $\emph{unit  i}$\\
+D_{i}=\begin {cases}
+1,  \mbox{if  unit \emph {i} receives the treatment}\\
+0, \mbox {otherwise}
+\end{cases}
+\end{block}
+
+
+\begin{block}{Outcome}
+Y_{i}: \mbox{Observed outcome of interest for unit}\hspace{.05cm} \emph{i}
+\end{block}
+
+\begin{block}{Potential Outcomes}
+Y_{di}=\begin {cases}
+Y_{0i},  \mbox{Potential outcome for unit \emph {i} without  treatment}\\
+Y_{1i}, \mbox {Potential outcome for unit \emph { i} with  treatment}
+\end{cases}
+\end{block}
+\end{frame}
+
+\subsection{Causality}
+\begin{frame}\frametitle{Definition and Assumption}
+\begin{block} {Assumption}
+Observed outcomes are realized as\\
+Y_{i}=D_{i}$\cdot$Y_{1i}+(1-D_{i})$\cdot$ Y_{0i}\\
+
+so Y_{i}=\begin{cases}
+Y_{1i}, \mbox {if}\hspace{.1cm} D_{i}=1\\
+Y_{0i}, \mbox {if}\hspace{.1cm} D_{i}=0
+\end{cases}
+\end{block}
+
+\begin{block} {Definition}
+Causal effect is the difference between its two potential outcomes:
+$\alpha_{i} = Y_{1i}-Y_{0i}$
+\end{block}
+
+\begin{block} {SUTVA}
+Potential outcomes for unit \emph{i} are unaffected by unit \emph{j}
+\end{block}
+\end{frame}
+
+\subsection{Identification Problem}
+\begin{frame}{Potential Outcome Framework}
+\begin{itemize}
+\item The quantity $Y_{1i}$  means the unit \emph{i} have outcome as variable Y. Actually, \emph {it may or may not receive the treatment}, even it is from the treated group ($D_{i}=1$). $Y_{0i}$ represents the quantity of outcome for unit \emph{i} of the not-treatment group, whether or not it receives the treatment.  
+\item That involves missing data because we cannot observe both \emph{potential outcomes}, namely $Y_{0i}$ and $Y_{1i}$. Remember we only observe \emph{realized outcomes}, $Y_{i}$.
+\item For example, we may observe students' performance who actually come to this talk, but we may not observe these students who would stay home. In the same way, we can evaluate students' performance who are not in this room, but we may not be able to observe performance of those students if they were in this room. That is the idea of \emph{counterfactual}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Identification Problem}
+\begin{exampleblock}{Problem}
+Provided that we cannot observe unit \emph{i}'s potential outcome, either treated or not-treated, how can we compute the difference due to the treatment? \\
+\hspace{3cm}$\alpha_{i}=Y_{1i}-Y_{0i}$
+\end{exampleblock}
+
+\begin{alertblock}{homogeneity}
+Most individuals are different, so we cannot assume that their responses to treatment $D$ is the same, ie. $Y_{1i}$ or $Y_{0i}$ is the same for every unit even some of them do not receive the treatment. 
+\end{alertblock}
+\end{frame}
+
+\section{Average Treatment Effect}
+\subsection{Why ATE?}
+\begin{frame}
+The random assignment process ensures that who receives the treatment is random, so we can assume that one group of unit \emph{i}s that receives the treatment is the same with another group that receives the treatment.
+\\
+\vspace{.3cm}
+If so, we can estimate average treatment effect (ATE) as:\newline
+\begin{align*}
+ATE & =E[Y_{1}-Y_{0}]\\
+& =E[Y_{1}]-E[Y_{0}]\\
+& =E[Y_{1}\mid D=1]-E[Y_{0}\mid D=0]
+\end{align*}
+
+\end{frame}
+
+\subsection{Definition}
+\begin{exampleblock}{ATE}
+ATE=E[Y_{1}\mid D=1]-E[Y_{0}\mid D=0]=E[Y_{1}-Y_{0}]=E[Y_{1}]-E[Y_{0}]
+\end{exampleblock}
+
+\begin{exampleblock}{ATET}
+We care about average treatment effect among the treated\\ 
+ATET=E[Y_{1}-Y_{0}\mid D=1]
+\end{exampleblock}
+
+\begin{exampleblock}{ATE=ATET}
+When Y_{1}\perp D, E[Y_{1}]=E[Y_{1}\mid D=1]\\
+When Y_{0}\perp D, E[Y_{0}]=E[Y_{0}\mid D=0]
+\end{exampleblock}
+
+\begin{exampleblock}{Subgroup ATE}
+When there are x subgroups, each subgroup has its ATE:\\
+
+ATE_{x} =E[{Y_{1}-Y_{0}\mid X=x]\\
+ =E[Y_{1}\mid X=x, D=1]-E[Y_{0}\mid X=x, D=0]
+
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}\frametitle{ATE example}
+Suppose that there are 4 units in our study:
+
+\begin{tabular}{p{2cm}  p{1cm}  p{1cm} p{1cm} p{1cm} p{1cm}}
+
+\hline
+\emph{i} & Y_{1i} & Y_{0i} & Y_{i} & D_{i} & $\alpha_{i}$\\
+\hline
+1 &  3 & \textcolor{red}{0} & 3 & 1 & 3\\
+
+2 &  1 & \textcolor{red}{1} & 1 & 1 & 0\\
+
+3 &  \textcolor{red}{1} & 0 & 0 & 0 & 1\\
+
+4 &  \textcolor{red}{1} & 1 & 1 & 0 & 0\\
+\hline
+E[Y_{1}] &  1.5\\
+E[Y_{0}] & &  0.5\\
+\hline
+E[Y_{1}-Y{0}]&&&&&1\\
+\hline
+\\
+\vspace{.1cm}
+\end{tabular}
+$\alpha_{ATE}$=E[Y_{1}-Y{0}]=\frac{1}{4}\cdot(3+0+1+0)=1
+
+\end{frame}
+
+\subsection{Selection Problem}
+\begin{frame}\frametitle{Selection Problem}
+ATE can be expressed as:\\
+\begin{eqnarray}
+E[Y_{1}\mid D=1]-E[Y_{0}\mid D=0]
+ = \underbrace{{E[Y_{1}\mid D=1]}-{E[Y_{0}\mid D=1]}}_{ATET}\nonumber\\
+ + \underbrace{{E[Y_{0}\mid D=1]}-{E[Y_{0}\mid D=0]}}_{Bias}\nonumber
+\end{eqnarray}
+
+The selection problem, ATE $\neq$ ATET, arises when the bias term is not zero. Apart from the difference in treatment, units who receive the treatment may be different from units who do not receive the treatment \emph{even this treatment has no effect}. 
+\end{frame}
+
+\begin{frame}\frametitle{Selection Problem}
+\begin{itmize}
+\item For instance, education of parents may have nothing to do with children's intelligence, but their social status may encourage their children to receive similar education.
+\item People who participate in the job training program may be more aggressive than who do not get it. Simple comparison of earnings of people who receive job training or not may give us the wrong answer.
+\item Whether or not the bias term is zero depends on $Y_{0}$.Unfortunately, we cannot observe $Y_{0}$ whenever $D=1$. We should keep in mind of the bias term and avoid it.
+\end{itemize}
+\end{frame}
+
+\section{Application}
+\begin{frame}
+\LARGE
+\hspace{1cm} Let's run a real example.
+\end{frame}
+
+\subsection{Field Experiment}
+\begin{frame}\frametitle{Description}
+Olken (2007) reported that increasing participation would reduce corruption. His field experiment invites villages to monitor public projects. The dependent variable is $\emph{pct \_ missing}$, which means the percent of expenditure missing. The treatment variable is $\emph{treat\_ invite}$, which means whether villages receive the intervention (participation in monitoring). The covariates are:
+\begin{table}[ht]
+\begin{center}
+{\footnotesize
+\begin{tabular}{ll}
+\textbf{Variable} & \textbf{Definition}\\
+\hline
+\emph{head\_ edu} & Village head education  \\
+\emph{mosques} & Mosques per 1,000 \\
+\emph{pct\_ poor} & Percent of households below the poverty line\\
+\emph{total\_ budget} & Total budget (Rp. million)\\
+\hline
+\end{tabular}
+}
+\end{center}
+\end{table}
+\begin{reference}{4mm}{85mm}
+
+Benjamin A. Olken, 2007. "Monitoring Corruption: Evidence from a Field Experiment in Indonesia" \emph{Journal of Political Economy}, 115,2:200-249.
+\end{reference}
+\end{frame}
+
+\subsection{Analysis}
+\begin{frame}\frametitle{Balance Check}
+\begin{table}[ht]
+\begin{center}
+{\footnotesize
+\begin{tabular}{llrrrrrr}
+ \textbf{Variable} & \textbf{Levels} & $\mathbf{n}$ & \textbf{Min} & \textbf{Max} & $\mathbf{\bar{x}}$ & $\mathbf{s}$ & \textbf{\#NA} \\ 
+  \hline
+Education & control & 191 &  6.0 &  20.0 & 11.5 &  2.7 & 0 \\ 
+   & treatment & 371 &  6.0 &  20.0 & 11.4 &  2.7 & 5 \\ 
+   \hline
+p = 0.78 & all & 562 &  6.0 &  20.0 & 11.5 &  2.7 & 5 \\ 
+   \hline
+Mosques & control & 191 &  0.1 &   4.5 &  1.5 &  0.8 & 0 \\ 
+   & treatment & 374 &  0.0 &   6.9 &  1.4 &  0.8 & 2 \\ 
+   \hline
+p = 0.41 & all & 565 &  0.0 &   6.9 &  1.4 &  0.8 & 2 \\ 
+   \hline
+Poor & control & 190 &  0.0 &   0.9 &  0.4 &  0.2 & 1 \\ 
+   & treatment & 370 &  0.0 &   0.9 &  0.4 &  0.2 & 6 \\ 
+   \hline
+p = 0.64 &  & 560 &  0.0 &   0.9 &  0.4 &  0.2 & 7 \\ 
+   \hline
+Budget & control & 191 & 19.1 & 273.5 & 82.0 & 41.2 & 0 \\ 
+   & treatment & 374 &  8.8 & 890.2 & 80.2 & 56.7 & 2 \\ 
+   \hline
+p = 0.70 &  & 565 &  8.8 & 890.2 & 80.8 & 51.9 & 2 \\ 
+   \hline
+\end{tabular}
+}
+\caption{Balance Check of Covariates in Olken's data.}
+\label{tab: cont2}
+\end{center}
+\end{table}
+\end{frame}
+
+\begin{frame}\frametitle{Covariate Distribution}
+
+\begin{figure}[h]
+%\includegraphics[scale=.5]{F:/Documents and %Settings/Administrator/My %Documents/Dropbox/802_problem_3_figure1.jpg}
+\includegraphics[scale=.3]{shihshinplot1.jpg}
+\caption{Distributions of 4 Covariates under Treatment and Control}
+\end{figure}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{alertblock}{ATE}
+\begin{center}
+ATE=E[Y_{1}-Y_{0}]=E[Y_{1}]-E[Y_{0}]
+\end{center}
+\end{alertblock}
+\vspace{.2cm}
+\begin{Verbatim}[frame=single]
+T<-subset(olken, Treat=="treatment")
+C<-subset(olken, Treat=="control")
+ATE<-mean(T$Missing,na.rm=T)-mean(C$Missing,na.rm=T)
+> ATE
+[1] -0.02314737
+\end{Verbatim}
+\end{frame}
+
+\begin{frame}\frametitle{Regression}
+Without covariates, we have the model\newline
+\begin{equation*}
+y=\beta_{0}+\beta_{1}D+\epsilon_{1}
+\end{equation*}
+where D is the treatment variable and y is the vector of outcomes. \newline
+When D=0, the model becomes:\newline
+\begin{IEEEeqnarray}{ll}
+\hat{y} &=\hat{\beta_{0}}+\hat{\beta_{1}}0\nonumber\\
+& =\hat{\beta_{0}}
+\end{IEEEeqnarray}
+
+When D=1, the model becomes:\newline
+\begin{IEEEeqnarray}{ll}
+\hat{y} & =\hat{\beta_{0}}+\hat{\beta_{1}}1\nonumber\\
+& =\hat{\beta_{0}}+\hat{\beta_{1}}
+\end{IEEEeqnarray}
+\end{frame}
+
+\begin{frame}\frametitle{Treatment Effect}
+Eq. 1: $\hat{y}=\hat{\beta_{0}}$\\
+\vspace{.2cm}
+Eq. 2: $\hat{y}=\hat{\beta_{0}}+\hat{\beta_{1}}$\\
+\vspace{.2cm}
+Because linear equation assumes linear parametric form for the conditional expectation form:\newline
+$E[Y\mid X]=\beta_{0}+\beta_{1}X$
+\\
+\vspace{.3cm}
+Therefore, Eq. 2 - Eq. 1=\\
+$E[Y\mid D=1]-E[Y\mid D=0]$
+$=\hat{\beta_{1}} $, which is the effect of D. \\
+\vspace{.6cm}
+\pause
+It means the estimate of D represents the average treatment effect.
+\end{frame}
+
+\begin{frame}\frametitle{Single Regression Model}
+\begin{table}
+\caption{Binary Explanatory Variable OLS Model}
+\begin{center}
+\begin{tabular}{l D{.}{.}{3.5} @{}}
+\toprule
+               & \multicolumn{1}{c}{Model 1} \\
+\midrule
+(Intercept)    & 0.25^{***} \\
+               & (0.03)     \\
+Treatment & -0.02      \\
+               & (0.03)     \\
+\midrule
+R$^2$          & 0.00       \\
+Adj. R$^2$     & 0.00       \\
+Num. obs.      & 477        \\
+\bottomrule
+\vspace{-3mm}\\
+\multicolumn{2}{l}{\textsuperscript{***}$p<0.001$, 
+  \textsuperscript{**}$p<0.01$, 
+  \textsuperscript{*}$p<0.05$, 
+  \textsuperscript{$\cdot$}$p<0.1$}
+\end{tabular}
+\label{table:coefficients}
+\end{center}
+\end{table}
+\end{frame}
+
+\begin{frame}\framtetitle{Multiple Regression Model}
+\begin{table}[h]
+\begin{center}
+{\footnotesize
+\begin{tabular}{l D{.}{.}{3.5} @{}}
+\toprule
+               & \multicolumn{1}{c}{Model 2} \\
+\midrule
+(Intercept)    & 0.39^{***} \\
+               & (0.09)     \\
+Treatment      & -0.03      \\
+               & (0.03)     \\
+Budget         & 0.00^{*}   \\
+               & (0.00)     \\
+Mosques        & -0.05^{**} \\
+               & (0.02)     \\
+Education      & -0.01      \\
+               & (0.01)     \\
+Poor           & -0.12      \\
+               & (0.07)     \\
+\midrule
+R$^2$          & 0.03       \\
+Adj. R$^2$     & 0.02       \\
+Num. obs.      & 472        \\
+\bottomrule
+\vspace{-2mm}\\
+\multicolumn{2}{l}{\textsuperscript{***}$p<0.01$, 
+  \textsuperscript{**}$p<0.05$, 
+  \textsuperscript{*}$p<0.1$}
+\end{tabular}
+}
+\end{center}
+\caption{Treatment Multiple Regression Model}
+\label{table:coef2}
+\end{table}
+\end{frame}
+
+\begin{frame}[containsverbatim]\frametitle{Standard Error}
+We assume that the treated and un-treated groups are independent. $Y_{T}$ is unrelated to $Y_{C}$. Therefore, the standard error of ATE is the squared root of sum of both variances.
+\begin{alertblock}{Pooled S.E.}
+%\begin{align*}
+$var(\hat{Y}_{treated}-\hat{Y}_{control})
+=var(\hat{Y}_{treated})-var(\hat{Y}_{control})
+=\frac{\sigma^2_{T}}{N_{T}} + \frac{\sigma^2_{C}}{N_{C}}$
+%\end{align*}
+\end{alertblock}
+\vspace{.2cm}
+\begin{Verbatim}[frame=single]
+PoolSE=sqrt((var(T$Missing,na.rm=T)/nrow(T)) + 
+    (var(C$Missing,na.rm=T)/nrow(C)))
+> PoolSE
+[1] 0.03019662
+\end{Verbatim}
+\end{frame}
+
+\begin{frame}\frametitle{Results}
+%\renewcommand{\bel}{\begin{itemize}
+%\renewcommand{\endl}{\end{itemize}}
+\begin{itemize}
+\item The analysis shows the small treatment effect; only .02 decrease in corruption.
+\item Including covariates will influence the variance of the coefficient of D. If the covariates effectively explain the variation of the outcome variable, then the overall variance of the coefficients becomes smaller. If the treatment can predict the covariates, however, including those covariates may increase the variance estimate.
+\item The standard error of Model 1 is smaller than the pooled standard error. It is because the OLS model assumes the equal variance of each level of the covariate, which is D is this case. Pooled S.E. allows unequal variance, which makes the standard error larger. Our inference will be more conservative if we use pooled S.E.
+\end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{SUTVA}
+\begin{itemize}
+\item One of assumptions of potential outcome model is \textbf{stable unit treatment value assumption}.
+\item In this study, SUTVA assumption means villages of two groups are independent of each other. If people in the villages that receive no treatment heard about the experiment may alter their behavior. In this case, the treatment effect may become even smaller. 
+\end{itemize}
+\end{frame}
+
+\section{Further Topics}
+\begin{frame}\frametitle{More Topics}
+\begin{itemize}
+\item What if we estimate the subgroup ATE? For example, we estimate ATE of villages above and under the poverty line, say .5.
+\item What if we only include one or two more covariates? Will the size of standard error change?
+\end{itemize}
+\end{frame}
+
+%\begin{frame}
+
+%\begin{exampleblock}{}
+%{\Large 
+%\hspace{1.5cm}Thank you for your attention. }
+%\end{exampleblock}
+
+%\end{frame}
+\end{document}
